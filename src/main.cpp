@@ -33,6 +33,14 @@
     //brightness level 255/15 = 17 steps for a full circle on the ring
     uint8_t brightness = 15;
 
+  // Power-resistant settings (cue theme/gap/mute, ring brightness) — must
+  // come AFTER Buzzer + RingOFLeds above, it reads/writes those directly.
+    #include "Storage/Settings_Store.h"
+
+  // What the Settings mode adjusts (brightness/mute/theme/...) — must
+  // come AFTER Buzzer + RingOFLeds + Persist above, and BEFORE Modes.h.
+    #include "Settings_Items.h"
+
 // Modes (must come AFTER the objects above — Modes.h uses them)
 #include "Modes.h"
 
@@ -99,6 +107,10 @@ void setup() {
 
     //speaker:
       speaker.Setup();
+
+    //settings saved from last time (cue theme/gap/mute, brightness) —
+    //loaded before the boot cues below, so they already sound right.
+      Persist.load();
 
   delay(500);
   //rest of setup here

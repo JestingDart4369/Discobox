@@ -19,7 +19,7 @@
     Buzzer.playCue(UISFX_PRESS);     // play a UI cue by id
     Buzzer.playCue("success");       // ...or by name
     Buzzer.setCuePack("arcade");     // choose the cue theme (pitch/speed)
-    Buzzer.setCueGap(30, 80);        // override the default: 30ms before, 80ms after
+    Buzzer.setCueGap(30, 80);        // 30ms silence before a cue, 80ms after
 
     Buzzer.setMuted(true);   // silence button/gesture cues only
     Buzzer.toggleMute();     // flip it
@@ -28,11 +28,10 @@
 
   A cue briefly pauses whatever song is playing and resumes it
   afterwards, so button feedback never derails the music for long.
-  There's a short quiet gap before and after every cue by default
-  (20ms / 60ms) so it doesn't crash straight into the song's last note
-  or its resumed note — tune it with setCueGap(), or set 0/0 for none.
-  Non-blocking either way — implemented as a tiny state machine
-  advanced from step(), no delay() involved.
+  setCueGap() adds a short quiet gap before and/or after the cue itself
+  (default 0/0 = no gap), so the cue doesn't crash straight into the
+  song's last note or its resumed note. Non-blocking — implemented as
+  a tiny state machine advanced from step(), no delay() involved.
 
   Mute is button-cue-only: when muted, playCue() does nothing at all —
   no sound, no pausing the song. Songs (play/next/etc.) are unaffected
@@ -225,7 +224,15 @@ public:
     Logger::warn("Buzzer: unknown pack '%s'", name);
   }
 
-  const char* cuePackName() const { return UISFX_PACKS[_pack_index].name; }
+  // Same, but by index (e.g. restoring a saved setting) — silently
+  // ignores an out-of-range index instead of warning, since this is
+  // meant for loading trusted data, not typed-in commands.
+  void setCuePack(uint8_t index) {
+    if (index < UISFX_PACK_COUNT) _pack_index = index;
+  }
+
+  const char* cuePackName()  const { return UISFX_PACKS[_pack_index].name; }
+  uint8_t     cuePackIndex() const { return _pack_index; }
 
   // ---- Mute (button/gesture cues only — songs are unaffected) ----
   void setMuted(bool m) {
@@ -262,11 +269,9 @@ private:
   bool _cue_muted = false;
 
   // quiet-gap state (see setCueGap())
-  static const uint8_t  NO_PENDING_CUE      = 0xFF;
-  static const uint16_t DEFAULT_GAP_BEFORE  = 20;   // ms — a beat of silence before a cue
-  static const uint16_t DEFAULT_GAP_AFTER   = 60;   // ms — and after, before a song resumes
-  uint16_t      _gap_before_ms   = DEFAULT_GAP_BEFORE;  // silence before a cue starts
-  uint16_t      _gap_after_ms    = DEFAULT_GAP_AFTER;   // silence after a cue, before resuming
+  static const uint8_t NO_PENDING_CUE = 0xFF;
+  uint16_t      _gap_before_ms   = 0;      // silence before a cue starts
+  uint16_t      _gap_after_ms    = 0;      // silence after a cue, before resuming
   uint8_t       _pending_cue_id  = NO_PENDING_CUE;  // cue waiting out its "before" gap
   bool          _in_post_gap     = false;  // currently waiting out the "after" gap
   unsigned long _gap_deadline_ms = 0;      // millis() time the current gap ends

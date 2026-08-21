@@ -36,7 +36,9 @@
   IMPORTANT: this file uses the global objects from main.cpp
   (RingOFLeds, RGBButton, and the Buzzer song-list player), so it must
   be #included in main.cpp AFTER those objects are defined.
-  The song list itself lives in Buzzer/Buzzer_Player.h.
+  The song list itself lives in Buzzer/Buzzer_Player.h. The Settings
+  mode also needs SettingsList, so Settings_Items.h must come before
+  this file too.
 */
 
 
@@ -164,10 +166,10 @@ public:
       RingOFLeds.Set_Single_Hex(i, color());
     RingOFLeds.show();
     RGBButton.ledSetHex(color());
-    Buzzer.play(1);
+    Buzzer.play(0);
   }
 
-  void Exit() override { /* stop anything this mode started */ }
+  void Exit() override { Buzzer.stop(); }
 
   void Step(unsigned long now) override { /* TODO: animations, every frame */ }
 
@@ -197,7 +199,7 @@ public:
     RGBButton.ledSetHex(color());
   }
 
-  void Exit() override { }
+  void Exit() override { Buzzer.stop(); }
   void Step(unsigned long now) override { /* TODO */ }
   void SP() override { Logger::log("Mode3: SP — not assigned yet"); /* TODO */ }
   void DP() override { Logger::log("Mode3: DP — not assigned yet"); /* TODO */ }
@@ -209,8 +211,11 @@ private:
 
 
 /* ================================================================
-   MODE 4 — (Settings)
-   Settings:
+   MODE 4 — Settings
+   The actual settings (brightness, mute, theme, ...) live in their own
+   file — see Settings_Items.h. This mode is just the gesture wiring:
+     DP — next setting       TP — previous setting
+     SP — bump the CURRENTLY SELECTED setting's value (wraps at its max)
    ================================================================ */
 class Settings : public ModeBase {
 public:
@@ -218,23 +223,37 @@ public:
   uint32_t    color() const override { return 0xFF0000; }   // red
 
   void Enter() override {
-    RingOFLeds.clear();
-    for (uint8_t i = 0; i < 4; i++)
-      RingOFLeds.Set_Single_Hex(i, color());
-    RingOFLeds.show();
     RGBButton.ledSetHex(color());
-    _settingSelected = 0;   // first setting is selected by default
+    SettingsList.begin();   // back to the first setting every time
+    showSelected();
   }
 
-  void Exit() override { }
-  void Step(unsigned long now) override {  }
-  void SP() override { Logger::log("Settings: SP — not assigned yet"); /* UP */ }
-  void DP() override { Logger::log("Settings: DP — not assigned yet"); /* PLUS */ }
-  void TP() override { Logger::log("Settings: TP — not assigned yet"); /* DOWN */ }
+  void Exit() override { Buzzer.stop(); }
+  void Step(unsigned long now) override { }
+
+  void DP() override { SettingsList.next();     showSelected(); }
+  void TP() override { SettingsList.previous(); showSelected(); }
+  void SP() override { SettingsList.bump(); }   // logs + saves itself
+
+  // Which sound plays after SP depends on which setting is selected —
+  // by the time this is read (see main.cpp's Btn_SP: action first, cue
+  // second) bump() has already run, so a theme change already applies
+  // to its own demo cue below. DP/TP get a quick "tick" so moving
+  // through the list is audible too, distinct from a bump.
+  UiSfxCueId cueForSP() const override { return SettingsList.current().cueForBump(); }
+  UiSfxCueId cueForDP() const override { return UISFX_HOVER; }
+  UiSfxCueId cueForTP() const override { return UISFX_HOVER; }
 
 private:
-  // Settings variables
-  uint8_t _settingSelected = 0;
+  // Light (index+1) ring LEDs in the mode color, so you can see which
+  // setting is selected just by counting lit LEDs — same trick the
+  // other modes use to show their own mode number on Enter().
+  void showSelected() {
+    RingOFLeds.clear();
+    for (uint8_t i = 0; i <= SettingsList.index(); i++)
+      RingOFLeds.Set_Single_Hex(i, color());
+    RingOFLeds.show();
+  }
 };
 
 

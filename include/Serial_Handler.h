@@ -10,21 +10,27 @@
 
   HELP
     help          — quick overview + list of topics
-    help <topic>  — full detail for one topic (gestures / buzzer / lights / info)
+    help <topic>  — full detail for one topic (gestures / settings / buzzer / lights / info)
     status        — current mode + song + playing + mute + cue state
 
   Everything else is grouped under those topics — see `help <topic>`
   in the Serial Monitor for the live, authoritative list (it always
   matches the running firmware). Short version:
     gestures — sp / dp / tp / hold / mode N
-    buzzer   — songs (buzzer -p/-n/-b/-c/-l/-s/-m) and UI cues (-q/-o/-y/-g)
+    settings — settings -bump/-next/-back/-list (works from any mode)
+    buzzer   — songs (buzzer -play/-next/-back/-queue/-list/-stop/-mute) and UI cues (-cue/-options/-theme/-gap)
     lights   — ring / led / btn / bright / disco / fade / wipe / clear
 
   Note: a running animation (e.g. party disco) repaints the ring every
   frame and will overwrite manual light commands — stop it first (sp).
 
-  IMPORTANT: include this in main.cpp AFTER Modes.h — it talks
-  directly to the Modes manager and the Party mode.
+  Cue theme/gap/mute and brightness are power-resistant — they're saved
+  to flash (see Storage/Settings_Store.h) the moment you set them here,
+  so they're still set after a power loss, not just until unplugged.
+
+  IMPORTANT: include this in main.cpp AFTER Modes.h, Settings_Store.h,
+  and Settings_Items.h — it talks directly to the Modes manager, the
+  Party mode, Persist, and SettingsList.
 */
 
 #include <Arduino.h>
@@ -102,44 +108,82 @@ private:
       else Logger::warn("mode must be 1..%d", Modes.count());
     }
 
+    // --- settings menu (brightness/mute/theme/...) — works from any mode,
+    // same list Settings mode's SP/DP/TP use (see Settings_Items.h) ---
+    else if (strncmp(line, "settings", 8) == 0) {
+      const char* a = line + 8;
+      while (*a == ' ') a++;
+
+      if (*a == '\0') {
+        Logger::log("settings: %s selected (%d/%d)  |  -bump -next -back -list",
+                    SettingsList.current().name(), SettingsList.index() + 1, SettingsList.count());
+        Logger::log("type 'help settings' for what each flag does");
+      }
+      else if (strncmp(a, "-bump", 5) == 0) {
+        SettingsList.bump();                                       // logs + saves itself
+        Buzzer.playCue(SettingsList.current().cueForBump());
+      }
+      else if (strncmp(a, "-next", 5) == 0) {
+        SettingsList.next();
+        Buzzer.playCue(UISFX_HOVER);
+      }
+      else if (strncmp(a, "-back", 5) == 0) {
+        SettingsList.previous();
+        Buzzer.playCue(UISFX_HOVER);
+      }
+      else if (strncmp(a, "-list", 5) == 0) {
+        for (uint8_t i = 0; i < SettingsList.count(); i++)
+          Logger::log("  %d: %s%s", i, SettingsList.at(i).name(),
+                      (i == SettingsList.index()) ? "  <- selected" : "");
+      }
+      else Logger::warn("unknown settings flag '%s' — type 'settings'", a);
+    }
+
     // --- buzzer (music), flag style: buzzer -p [N] / -n / -c N / -l / -s ---
     else if (strncmp(line, "buzzer", 6) == 0) {
       const char* a = line + 6;
       while (*a == ' ') a++;                      // skip spaces after "buzzer"
 
       if (*a == '\0') {
-        Logger::log("songs: -p [N] -n -b -c N -l -s -m  |  cues: -q <name> -o -y <pack> -g");
+        Logger::log("songs: -play [N] -next -back -queue N -list -stop -mute  (N is 0-based, see -list)  |  cues: -cue <name> -options -theme <pack> -gap");
         Logger::log("type 'help buzzer' for what each flag does");
       }
-      else if (strncmp(a, "-p", 2) == 0) {
-        int n = atoi(a + 2);                      // 0 if no number given
-        if (n >= 1) Buzzer.play((uint8_t)(n - 1));
-        else        Buzzer.play();
+      else if (strncmp(a, "-play", 5) == 0) {
+        // list is 0-based (see -list) — atoi() alone can't tell "no number"
+        // from "0", so check for an actual digit before trusting it.
+        const char* rest = a + 5;
+        while (*rest == ' ') rest++;
+        if (*rest) Buzzer.play((uint8_t)atoi(rest));   // e.g. -play 0
+        else        Buzzer.play();                      // no number -> current song
       }
-      else if (strncmp(a, "-n", 2) == 0) Buzzer.next();
-      else if (strncmp(a, "-b", 2) == 0) Buzzer.previous();
-      else if (strncmp(a, "-c", 2) == 0) {
-        int n = atoi(a + 2);
-        if (n >= 1) Buzzer.select((uint8_t)(n - 1));
-        else Logger::warn("usage: buzzer -c 2");
+      else if (strncmp(a, "-next", 5) == 0) Buzzer.next();
+      else if (strncmp(a, "-back", 5) == 0) Buzzer.previous();
+      else if (strncmp(a, "-queue", 6) == 0) {
+        const char* rest = a + 6;
+        while (*rest == ' ') rest++;
+        if (*rest) Buzzer.select((uint8_t)atoi(rest));
+        else Logger::warn("usage: buzzer -queue 1   (0-based index, see -list)");
       }
-      else if (strncmp(a, "-l", 2) == 0) {
+      else if (strncmp(a, "-list", 5) == 0) {
         for (uint8_t i = 0; i < Buzzer.songCount(); i++)
-          Logger::log("  %d: %s%s", i + 1, SONGLIST[i].name,
+          Logger::log("  %d: %s%s", i, SONGLIST[i].name,
                       (i == Buzzer.songIndex()) ? "  <- current" : "");
       }
-      else if (strncmp(a, "-s", 2) == 0) {
+      else if (strncmp(a, "-stop", 5) == 0) {
         Buzzer.stop();
         Logger::log("[serial] music stopped");
       }
-      else if (strncmp(a, "-m", 2) == 0) Buzzer.toggleMute();
-      else if (strncmp(a, "-q", 2) == 0) {
-        const char* name = a + 2;
+      else if (strncmp(a, "-mute", 5) == 0) { Buzzer.toggleMute(); Persist.save(); }
+      // NOTE: this used to also be named "-queue", same as song select above —
+      // since it's an else-if chain, that made this branch unreachable (song
+      // select always won). Renamed to "-cue" so both are actually reachable.
+      else if (strncmp(a, "-cue", 4) == 0) {
+        const char* name = a + 4;
         while (*name == ' ') name++;
         if (*name) Buzzer.playCue(name);
-        else Logger::warn("usage: buzzer -q press   (try 'buzzer -o' for names)");
+        else Logger::warn("usage: buzzer -cue press   (try 'buzzer -options' for names)");
       }
-      else if (strncmp(a, "-o", 2) == 0) {
+      else if (strncmp(a, "-options", 8) == 0) {
         // print cue names in short rows so they fit the log line width
         char row[100]; uint8_t rowLen = 0;
         for (uint8_t i = 0; i < UISFX_CUE_COUNT; i++) {
@@ -155,24 +199,25 @@ private:
         }
         if (rowLen > 0) { row[rowLen] = '\0'; Logger::log("  %s", row); }
       }
-      else if (strncmp(a, "-y", 2) == 0) {
-        const char* name = a + 2;
+      else if (strncmp(a, "-theme", 6) == 0) {
+        const char* name = a + 6;
         while (*name == ' ') name++;
-        if (*name) Buzzer.setCuePack(name);
+        if (*name) { Buzzer.setCuePack(name); Persist.save(); }
         else {
-          Logger::warn("usage: buzzer -y arcade   (packs below)");
+          Logger::warn("usage: buzzer -theme arcade   (packs below)");
           for (uint8_t i = 0; i < UISFX_PACK_COUNT; i++)
             Logger::log("  %s", UISFX_PACKS[i].name);
         }
       }
-      else if (strncmp(a, "-g", 2) == 0) {
-        const char* rest = a + 2;
+      else if (strncmp(a, "-gap", 4) == 0) {
+        const char* rest = a + 4;
         while (*rest == ' ') rest++;
         int before, after;
         if (*rest == '\0') {
           Logger::log("cue gap: %dms before, %dms after", Buzzer.cueGapBefore(), Buzzer.cueGapAfter());
         } else if (sscanf(rest, "%d %d", &before, &after) == 2 && before >= 0 && after >= 0) {
           Buzzer.setCueGap((uint16_t)before, (uint16_t)after);
+          Persist.save();
           Logger::log("[serial] cue gap -> %dms before, %dms after", before, after);
         } else Logger::warn("usage: buzzer -g 30 80");
       }
@@ -210,6 +255,7 @@ private:
       if (v >= 0 && v <= 255) {
         RingOFLeds.setBrightness((uint8_t)v);
         RingOFLeds.show();
+        Persist.save();
         Logger::log("[serial] brightness -> %d", v);
       } else Logger::warn("bright must be 0..255");
     }
@@ -243,6 +289,8 @@ private:
     else if (strcmp(line, "status") == 0) {
       Logger::log("mode: %s (%d/%d)", Modes.current().name(),
                   Modes.index() + 1, Modes.count());
+      Logger::log("setting: %s (%d/%d)", SettingsList.current().name(),
+                  SettingsList.index() + 1, SettingsList.count());
       Logger::log("song: %s | party %s | music %s | cues %s | pack %s | gap %d/%dms",
                   Buzzer.songName(),
                   modeParty.isRunning() ? "running" : "off",
@@ -252,9 +300,9 @@ private:
                   Buzzer.cueGapBefore(), Buzzer.cueGapAfter());
     }
     else if (strcmp(line, "help") == 0) {
-      Logger::log("Discobox serial console. Topics: gestures | buzzer | lights");
+      Logger::log("Discobox serial console. Topics: gestures | settings | buzzer | lights");
       Logger::log("  help <topic>  - what each command in that topic does");
-      Logger::log("  status        - current mode, song, mute and cue-gap state");
+      Logger::log("  status        - current mode, setting, song, mute and cue-gap state");
     }
     else if (strncmp(line, "help ", 5) == 0) {
       const char* topic = line + 5;
@@ -267,22 +315,30 @@ private:
         Logger::log("next           - same as 'hold'");
         Logger::log("mode N         - jump straight to mode N (1..4), skipping the cycle");
       }
+      else if (strcmp(topic, "settings") == 0) {
+        Logger::log("The same list Settings mode's SP/DP/TP use (see Settings_Items.h) —");
+        Logger::log("works from any mode, doesn't require switching to Settings first.");
+        Logger::log("-bump        bump the SELECTED setting's value up (wraps at its max)");
+        Logger::log("-next        select the next setting in the list");
+        Logger::log("-back        select the previous setting in the list");
+        Logger::log("-list        list every setting, marking which one is selected");
+      }
       else if (strcmp(topic, "buzzer") == 0) {
         Logger::log("-- songs --");
-        Logger::log("-p       play the currently selected song from the start");
-        Logger::log("-p 2     play song 2 right now, regardless of what was selected");
-        Logger::log("-n       skip to the next song in the list");
-        Logger::log("-b       go back to the previous song");
-        Logger::log("-c 2     select song 2 without playing it (unless music is already on)");
-        Logger::log("-l       list every song, marking which one is current");
-        Logger::log("-s       stop the music completely");
-        Logger::log("-m       mute/unmute short cue sounds only (songs keep playing)");
+        Logger::log("-play        play the currently selected song from the start");
+        Logger::log("-play 1      play song index 1 right now, regardless of what was selected");
+        Logger::log("-next        skip to the next song in the list");
+        Logger::log("-back        go back to the previous song");
+        Logger::log("-queue 1     select song index 1 without playing it (unless music is already on)");
+        Logger::log("-list        list every song with its index (0-based), marking which one is current");
+        Logger::log("-stop        stop the music completely");
+        Logger::log("-mute        mute/unmute short cue sounds only (songs keep playing)");
         Logger::log("-- UI cues: short feedback blips like 'press' or 'success' --");
-        Logger::log("-q press play one cue by name; briefly pauses a song, then resumes it");
-        Logger::log("-o       list every cue name you can pass to -q");
-        Logger::log("-y name  switch the cue's pitch/speed theme; -y alone lists themes");
-        Logger::log("-g 30 80 silence 30ms before a cue and 80ms after (default 20/60ms)");
-        Logger::log("         -g alone shows the current gap");
+        Logger::log("-cue press   play one cue by name; briefly pauses a song, then resumes it");
+        Logger::log("-options     list every cue name you can pass to -cue");
+        Logger::log("-theme name  switch the cue's pitch/speed theme; -theme alone lists themes");
+        Logger::log("-gap 30 80   silence 30ms before a cue and 80ms after (default 20/60ms)");
+        Logger::log("             -gap alone shows the current gap");
       }
       else if (strcmp(topic, "lights") == 0) {
         Logger::log("ring <color>    set every LED on the ring to one color");
@@ -298,7 +354,7 @@ private:
         Logger::log("every frame and will overwrite these — stop it first (sp)");
       }
       else {
-        Logger::warn("no such topic '%s' - try: gestures, buzzer, lights", topic);
+        Logger::warn("no such topic '%s' - try: gestures, settings, buzzer, lights", topic);
       }
     }
     else {
