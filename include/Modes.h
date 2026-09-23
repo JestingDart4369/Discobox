@@ -45,8 +45,10 @@
 /* ================================================================
    ModeBase — every mode inherits from this
    ================================================================ */
+/// @brief The base class for all modes in the Discobox project. Each mode inherits from this class and overrides its virtual methods to define specific behavior for that mode.
 class ModeBase {
 public:
+  /// @brief Virtual destructor for the ModeBase class. Ensures proper cleanup of derived classes.
   virtual ~ModeBase() {}
 
   // Identity
@@ -54,9 +56,12 @@ public:
   virtual uint32_t    color() const = 0;   // flash + indicator color
 
   // Lifecycle
-  virtual void Enter() {}                  // mode becomes active
-  virtual void Exit()  {}                  // mode is being left (stop your stuff!)
-  virtual void Step(unsigned long now) {}  // every frame while active
+  /// @brief Called when the mode becomes active. Override this method to define behavior when entering the mode.
+  virtual void Enter() {}                  
+  /// @brief Called when the mode is being left. Override this method to define behavior when exiting the mode.
+  virtual void Exit()  {}
+  /// @brief Called every frame while the mode is active. Override this method to define behavior that should occur on each update cycle.
+  virtual void Step(unsigned long now) {}  
 
   // Gestures — called AFTER the matching cueForXX() below has already
   // been used to pick the sound, so it's safe to change mode state here
@@ -80,6 +85,7 @@ public:
    DP = next song
    TP = (free — add your action)
    ================================================================ */
+/// @brief The PartyMode class represents the "Party" mode in the Discobox project. It inherits from ModeBase and implements specific behavior for party-related actions, including starting/stopping music and controlling disco lights.
 class PartyMode : public ModeBase {
 public:
   const char* name()  const override { return "Party"; }
@@ -88,8 +94,9 @@ public:
   void Enter() override {
     _running = false;                    // party waits for SP to start
     RingOFLeds.clear();
+    RingOFLeds.setToColorSingleHex(1, color());
     RingOFLeds.show();
-    RGBButton.ledSetHex(color());        // button shows the mode color while idle
+    RGBButton.setToColorHex(color());        // button shows the mode color while idle
   }
 
   void Exit() override {
@@ -104,9 +111,9 @@ public:
     // disco lights (the music continues by itself — Buzzer auto-next)
     if (now - _last_disco >= DISCO_STEP_MS) {
       _last_disco = now;
-      RingOFLeds.Disco_step();
+      RingOFLeds.stepDisco();
       RingOFLeds.show();
-      RGBButton.Disco_step();
+      RGBButton.stepDisco();
     }
   }
 
@@ -118,8 +125,9 @@ public:
       Buzzer.autoNext(false);
       Buzzer.stop();
       RingOFLeds.clear();
+      RingOFLeds.setToColorSingleHex(1, color());
       RingOFLeds.show();
-      RGBButton.ledSetHex(color());
+      RGBButton.setToColorHex(color());
     } else {
       Logger::log("Party: start!");
       _running = true;
@@ -155,6 +163,7 @@ private:
 /* ================================================================
    MODE 2 — (Link Click)  — template, copy me for new modes
    ================================================================ */
+/// @brief Placeholder mode 2 — "LinkClick". Plays a song on enter; gestures are not yet assigned.
 class LinkClick : public ModeBase {
 public:
   const char* name()  const override { return "LinkClick"; }
@@ -163,9 +172,9 @@ public:
   void Enter() override {
     RingOFLeds.clear();
     for (uint8_t i = 0; i < 2; i++)    // 2 LEDs in the mode color = "this is mode 2"
-      RingOFLeds.Set_Single_Hex(i, color());
+      RingOFLeds.setToColorSingleHex(i, color());
     RingOFLeds.show();
-    RGBButton.ledSetHex(color());
+    RGBButton.setToColorHex(color());
     Buzzer.play(0);
   }
 
@@ -184,8 +193,9 @@ private:
 
 
 /* ================================================================
-   MODE 3 — (name me!)
+   MODE 3 — (lorem)
    ================================================================ */
+/// @brief Placeholder mode 3. Gestures are not yet assigned.
 class Mode3 : public ModeBase {
 public:
   const char* name()  const override { return "Mode3"; }
@@ -194,9 +204,9 @@ public:
   void Enter() override {
     RingOFLeds.clear();
     for (uint8_t i = 0; i < 3; i++)
-      RingOFLeds.Set_Single_Hex(i, color());
+      RingOFLeds.setToColorSingleHex(i, color());
     RingOFLeds.show();
-    RGBButton.ledSetHex(color());
+    RGBButton.setToColorHex(color());
   }
 
   void Exit() override { Buzzer.stop(); }
@@ -217,13 +227,22 @@ private:
      DP — next setting       TP — previous setting
      SP — bump the CURRENTLY SELECTED setting's value (wraps at its max)
    ================================================================ */
+/**
+ * @brief Settings mode — lets the user cycle through and adjust persisted settings.
+ *
+ * DP navigates to the next setting, TP to the previous.
+ * SP bumps the currently selected setting's value (wraps at its max).
+ * The number of lit ring LEDs indicates which setting is selected.
+ */
 class Settings : public ModeBase {
 public:
   const char* name()  const override { return "Settings"; }
   uint32_t    color() const override { return 0xFF0000; }   // red
-
+ 
   void Enter() override {
-    RGBButton.ledSetHex(color());
+    RGBButton.setToColorHex(color());
+    for (uint8_t i = 0; i < 4; i++)
+      RingOFLeds.setToColorSingleHex(i, color());
     SettingsList.begin();   // back to the first setting every time
     showSelected();
   }
@@ -248,10 +267,13 @@ private:
   // Light (index+1) ring LEDs in the mode color, so you can see which
   // setting is selected just by counting lit LEDs — same trick the
   // other modes use to show their own mode number on Enter().
+  uint32_t  color_settings=0xFF8000;   // orange
   void showSelected() {
     RingOFLeds.clear();
-    for (uint8_t i = 0; i <= SettingsList.index(); i++)
-      RingOFLeds.Set_Single_Hex(i, color());
+    for (uint8_t i = 0; i <= SettingsList.index()+4; i++)
+      RingOFLeds.setToColorSingleHex(i, color_settings);
+    for (uint8_t i = 0; i < 4; i++)
+      RingOFLeds.setToColorSingleHex(i, color());
     RingOFLeds.show();
   }
 };
@@ -260,14 +282,28 @@ private:
 /* ================================================================
    ModeManager — switching, color flash, gesture forwarding
    ================================================================ */
+/**
+ * @brief Owns the list of modes and manages the active one.
+ *
+ * Handles mode switching (exit → color flash → enter), gesture forwarding,
+ * and frame stepping. A single global instance `Modes` is created at the
+ * bottom of this file.
+ */
 class ModeManager {
 public:
+  /** @brief Constructs the manager from an array of mode pointers. @param list Array of ModeBase pointers. @param count Number of modes. */
   ModeManager(ModeBase** list, uint8_t count) : _list(list), _count(count) {}
 
-  // Call once from setup() to start in the first mode.
+  /** @brief Start in the first mode. Call once from setup(). */
   void begin() { setMode(0); }
 
-  // Switch to a specific mode (with exit of the old + color flash + enter).
+  /**
+   * @brief Switch to a specific mode.
+   *
+   * Calls Exit() on the current mode, flashes the ring in the new mode's
+   * color, then calls Enter() on the new mode.
+   * @param index 0-based mode index. Out-of-range values are ignored.
+   */
   void setMode(uint8_t index) {
     if (index >= _count) return;
     current().Exit();
@@ -277,17 +313,23 @@ public:
     current().Enter();
   }
 
-  // HOLD — same in every mode: go to the next mode
+  /** @brief Advance to the next mode (wraps). Called on a 3-second button hold. */
   void nextMode() { setMode((_index + 1) % _count); }
 
-  // Forward gestures + frames to the active mode
+  /** @brief Forward a single-press to the active mode. */
   void SP() { current().SP(); }
+  /** @brief Forward a double-press to the active mode. */
   void DP() { current().DP(); }
+  /** @brief Forward a triple-press to the active mode. */
   void TP() { current().TP(); }
+  /** @brief Forward an animation frame to the active mode. @param now Current millis() timestamp. */
   void Step(unsigned long now) { current().Step(now); }
 
+  /** @brief Returns a reference to the currently active mode. */
   ModeBase& current() { return *_list[_index]; }
+  /** @brief Returns the 0-based index of the currently active mode. */
   uint8_t   index() const { return _index; }
+  /** @brief Returns the total number of registered modes. */
   uint8_t   count() const { return _count; }
 
 private:
@@ -295,13 +337,17 @@ private:
   uint8_t    _count;
   uint8_t    _index = 0;
 
-  // Quick flash of the whole ring + button in the mode's color (2 blinks).
-  // Blocking, but very short — only runs at the moment of a mode switch.
+  /**
+   * @brief Flash the whole ring and button in the given color (2 quick blinks).
+   *
+   * Blocking, but only a few hundred milliseconds — only runs during a mode switch.
+   * @param c 24-bit hex color (0xRRGGBB).
+   */
   void flashColor(uint32_t c) {
     for (uint8_t blink = 0; blink < 2; blink++) {
-      RingOFLeds.All_Set_Hex(c);
+      RingOFLeds.setToColorHex(c);
       RingOFLeds.show();
-      RGBButton.ledSetHex(c);
+      RGBButton.setToColorHex(c);
       delay(120);
       RingOFLeds.clear();
       RingOFLeds.show();

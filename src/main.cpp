@@ -6,6 +6,8 @@
 //   include/Button_Handler.h — button gesture detection (SP/DP/TP/hold)
 //   include/Lights/...       — LED control classes
 //   include/Buzzer/...       — speaker + songs + UI sound cues
+///Documentation Layout Pins
+///P2=yellow, P3=Red, P4=white, P5=green, P6=blue, P9=speaker
 
 
 // Include necessary libraries
@@ -85,7 +87,6 @@ SerialCommander SerialCmd;
 
 //setup function
 void setup() {
-
   //logger
     Serial.begin(9600);
     Logger::log("Booting %s", "Discobox");
@@ -94,15 +95,14 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
 
   // Initialization of peripherals
-
     //button:
-      Button.Setup();
-      RGBButton.Setup();
-      RGBButton.ledSet(255, 0, 0); // Red for button
+      Button.setup();
+      RGBButton.setup();
+      RGBButton.setToColor(255, 0, 0); // Red for button
 
     //ring:
-      RingOFLeds.Setup();
-      RingOFLeds.All_Set(255,0,0);
+      RingOFLeds.setup();
+      RingOFLeds.setToColor(255,0,0);
       RingOFLeds.show();
 
     //speaker:
@@ -116,7 +116,7 @@ void setup() {
   //rest of setup here
   Buzzer.playCue("loading");           // ~1.06s — see bootWait() below
   for (uint8_t i = 0; i < 16; i++) {
-    RingOFLeds.Set_Single(i,0, 255, 0); // Green for ring during boot
+    RingOFLeds.setToColorSingle(i,0, 255, 0); // Green for ring during boot
     RingOFLeds.show();
     bootWait(100);                      // was delay(100) — that silently ate the cue
   }
@@ -124,7 +124,7 @@ void setup() {
   RingOFLeds.show();
 
 //button Goes Green, to show startup ok, then start in the first mode (Party).
-  RGBButton.ledSet(0, 255, 0);
+  RGBButton.setToColor(0, 255, 0);
   Buzzer.playCue("complete");          // ~0.73s
   Logger::log("Boot complete");
   bootWait(1000);                      // was delay(1000) — let "complete" actually play

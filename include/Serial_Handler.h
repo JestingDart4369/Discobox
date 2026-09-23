@@ -35,9 +35,22 @@
 
 #include <Arduino.h>
 
+/**
+ * @brief Non-blocking serial command interpreter for the Discobox.
+ *
+ * Reads bytes from the USB-C Serial port in update() and processes complete
+ * lines as commands. Commands are case-insensitive. Type `help` in the Serial
+ * Monitor for a full command reference. A running animation may overwrite
+ * manual light commands — stop it first (send `sp`).
+ */
 class SerialCommander {
 public:
-  // Call every frame — reads whatever bytes arrived, handles full lines.
+  /**
+   * @brief Read pending serial bytes and dispatch any complete lines as commands.
+   *
+   * Call every frame (not just every animation frame — put it in loop() before
+   * the frame-rate gate so responses stay snappy). Non-blocking.
+   */
   void update() {
     while (Serial.available() > 0) {
       char c = (char)Serial.read();
@@ -58,13 +71,19 @@ private:
   char    _buf[BUF_SIZE];
   uint8_t _len = 0;
 
-  // lowercase a line in place, so commands are case-insensitive
+  /** @brief Lowercase a C-string in place so commands are case-insensitive. @param s Null-terminated string to convert. */
   static void toLower(char* s) {
     for (; *s; s++) if (*s >= 'A' && *s <= 'Z') *s += 32;
   }
 
-  // Parse a color from text: either "255 0 0" or hex "#ff00ff" / "ff00ff".
-  // Returns true on success and fills r,g,b.
+  /**
+   * @brief Parse a color from text — either "255 0 0" (r g b) or "#ff00ff" / "ff00ff" (hex).
+   * @param s  Input string (leading spaces are skipped).
+   * @param r  Output: red channel (0..255).
+   * @param g  Output: green channel (0..255).
+   * @param b  Output: blue channel (0..255).
+   * @return true on success; false if the string doesn't match either format.
+   */
   static bool parseColor(const char* s, uint8_t& r, uint8_t& g, uint8_t& b) {
     while (*s == ' ') s++;
     if (*s == '\0') return false;
@@ -90,6 +109,10 @@ private:
     return false;
   }
 
+  /**
+   * @brief Dispatch a single lowercase, null-terminated command line.
+   * @param line The command string to handle (modified in place by toLower).
+   */
   void handle(char* line) {
     toLower(line);
 
@@ -174,16 +197,13 @@ private:
         Logger::log("[serial] music stopped");
       }
       else if (strncmp(a, "-mute", 5) == 0) { Buzzer.toggleMute(); Persist.save(); }
-      // NOTE: this used to also be named "-queue", same as song select above —
-      // since it's an else-if chain, that made this branch unreachable (song
-      // select always won). Renamed to "-cue" so both are actually reachable.
       else if (strncmp(a, "-cue", 4) == 0) {
         const char* name = a + 4;
         while (*name == ' ') name++;
         if (*name) Buzzer.playCue(name);
-        else Logger::warn("usage: buzzer -cue press   (try 'buzzer -options' for names)");
+        else Logger::warn("usage: buzzer -cue press   (try 'buzzer -cues' for names)");
       }
-      else if (strncmp(a, "-options", 8) == 0) {
+      else if (strncmp(a, "-cues", 5) == 0) {
         // print cue names in short rows so they fit the log line width
         char row[100]; uint8_t rowLen = 0;
         for (uint8_t i = 0; i < UISFX_CUE_COUNT; i++) {
@@ -250,7 +270,7 @@ private:
         Logger::log("[serial] btn -> %d %d %d", r, g, b);
       } else Logger::warn("usage: btn 0 0 255  or  btn #0000ff");
     }
-    else if (strncmp(line, "bright ", 7) == 0) {
+    else if (strncmp(line, "brightness", 7) == 0) {
       int v = atoi(line + 7);
       if (v >= 0 && v <= 255) {
         RingOFLeds.setBrightness((uint8_t)v);
@@ -335,7 +355,7 @@ private:
         Logger::log("-mute        mute/unmute short cue sounds only (songs keep playing)");
         Logger::log("-- UI cues: short feedback blips like 'press' or 'success' --");
         Logger::log("-cue press   play one cue by name; briefly pauses a song, then resumes it");
-        Logger::log("-options     list every cue name you can pass to -cue");
+        Logger::log("-cues        list every cue name you can pass to -cue");
         Logger::log("-theme name  switch the cue's pitch/speed theme; -theme alone lists themes");
         Logger::log("-gap 30 80   silence 30ms before a cue and 80ms after (default 20/60ms)");
         Logger::log("             -gap alone shows the current gap");

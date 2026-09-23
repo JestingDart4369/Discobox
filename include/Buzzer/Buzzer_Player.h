@@ -50,20 +50,34 @@
 //songs
   #include "Buzzer/SongsPlayer/Songs/BackInTime_song.h"  // BackInTime_Notes / BackInTime_notes_count
   #include "Buzzer/SongsPlayer/Songs/Solas_Melody.h"     // Solas_Melody / Solas_Melody_count
-
+  #include "Buzzer/SongsPlayer/Songs/megaovenia_song.h"   // Megalovenia / Megalovenia_count
+  #include "Buzzer/SongsPlayer/Songs/supermario_song.h"
+  #include "Buzzer/SongsPlayer/Songs/sims2_song.h"
+  #include "Buzzer/SongsPlayer/Songs/minecraft_sweden_song.h"
+  #include "Buzzer/SongsPlayer/Songs/Pokemon_Red_Opening_song.h"
+  #include "Buzzer/SongsPlayer/Songs/DancingQueen_song.h"
 
 /* ----------------------------------------------------------------
    The song list
 ---------------------------------------------------------------- */
+/**
+ * @brief A named song: a pointer to its note array, note count, and display name.
+ */
 struct Song {
-  const SongNote* notes;
-  size_t          count;
-  const char*     name;
+  const SongNote* notes; ///< Pointer to the note array
+  size_t          count; ///< Number of notes in the array
+  const char*     name;  ///< Human-readable name (shown in logs and serial status)
 };
 
 const Song SONGLIST[] = {
   { BackInTime_Notes, BackInTime_notes_count, "Back In Time" },
   { Solas_Melody,     Solas_Melody_count,     "Solas"        },
+  {DancingQueen,DancingQueen_notes_count, "Dancing Queen"},
+  { Megalovenia,      Megalovenia_notes_count,      "Megalovenia"  },
+  { Supermario,      Supermario_notes_count,      "Super Mario"  },
+  { Sims2,      Sims2_notes_count,      "Sims 2"  },
+  { Minecraft_sweden,      Minecraft_sweden_notes_count,      "Minecraft Sweden"  },
+  { Pokemon_Red_Opening,      Pokemon_Red_Opening_notes_count,      "Pokemon Red Opening"  }
 };
 const uint8_t SONGLIST_COUNT = sizeof(SONGLIST) / sizeof(SONGLIST[0]);
 
@@ -71,13 +85,29 @@ const uint8_t SONGLIST_COUNT = sizeof(SONGLIST) / sizeof(SONGLIST[0]);
 /* ----------------------------------------------------------------
    The player
 ---------------------------------------------------------------- */
+/**
+ * @brief High-level audio controller for the Discobox.
+ *
+ * Combines song-list playback with UI sound cues (short feedback blips).
+ * Cues briefly "duck" (pause) any playing song and resume it afterwards.
+ * All operations are non-blocking — the only thing that must run every
+ * loop() iteration is step().
+ *
+ * A single global instance `Buzzer` is created at the bottom of this file,
+ * wired to the `speaker` object defined in main.cpp.
+ */
 class BuzzerPlayer {
 public:
+  /** @brief Constructs a BuzzerPlayer backed by an existing speakerController. @param spk The low-level speaker controller to drive. */
   BuzzerPlayer(speakerController& spk) : _spk(spk) {}
 
-  // Call every loop iteration. Advances notes, waits out cue gaps,
-  // resumes a song after a cue finishes, and — when auto-next is on —
-  // starts the next song as soon as the current one finishes.
+  /**
+   * @brief Advance the audio state machine. Call every loop() iteration.
+   *
+   * Advances note playback, waits out pre/post-cue gaps, resumes a paused
+   * song once a cue finishes, and — when autoNext is on — starts the next
+   * song as soon as the current one ends.
+   */
   void step() {
     _spk.step();
 
@@ -115,7 +145,7 @@ public:
 
   // ---- Songs ----
 
-  // Play the current song (from the start).
+  /** @brief Play the currently selected song from the beginning. */
   void play() {
     _started = true;
     _ducking = false;
@@ -123,28 +153,37 @@ public:
     _spk.play(SONGLIST[_index].notes, SONGLIST[_index].count);
   }
 
-  // Play a specific song-list song right now (0-based index).
+  /**
+   * @brief Play a specific song from the list right now.
+   * @param index 0-based song index (see SONGLIST). Out-of-range values are ignored.
+   */
   void play(uint8_t index) {
     if (index >= SONGLIST_COUNT) { Logger::warn("No song %d", index + 1); return; }
     _index = index;
     play();
   }
 
-  // Next song. Plays it if music is currently running, otherwise just selects it.
+  /** @brief Advance to the next song (wraps). Plays it immediately if music is already running. */
   void next() {
     _index = (uint8_t)((_index + 1) % SONGLIST_COUNT);
     if (_spk.isPlaying() || (_auto_next && _started)) play();
     else Logger::log("Buzzer: selected %s", songName());
   }
 
-  // Previous song. Same behavior as next(), just one step back.
+  /** @brief Go back to the previous song (wraps). Plays it immediately if music is already running. */
   void previous() {
     _index = (uint8_t)((_index + SONGLIST_COUNT - 1) % SONGLIST_COUNT);
     if (_spk.isPlaying() || (_auto_next && _started)) play();
     else Logger::log("Buzzer: selected %s", songName());
   }
 
-  // Pick a song without forcing playback (plays only if already playing).
+  /**
+   * @brief Select a song without forcing playback.
+   *
+   * If music is currently playing the new song starts immediately;
+   * otherwise the selection is remembered for the next play() call.
+   * @param index 0-based song index. Out-of-range values are ignored.
+   */
   void select(uint8_t index) {
     if (index >= SONGLIST_COUNT) { Logger::warn("No song %d", index + 1); return; }
     _index = index;
@@ -152,7 +191,7 @@ public:
     else Logger::log("Buzzer: selected %s", songName());
   }
 
-  // Stop the music (and the auto-next chain).
+  /** @brief Stop playback immediately and cancel the auto-next chain. */
   void stop() {
     _started     = false;
     _ducking     = false;
@@ -160,14 +199,24 @@ public:
     _spk.stop();
   }
 
-  // Keep the song list going by itself (true while the party runs).
+  /**
+   * @brief Enable or disable automatic song advancement.
+   *
+   * When on, step() starts the next song as soon as the current one finishes.
+   * @param on true to keep songs playing in sequence; false to stop after the current song.
+   */
   void autoNext(bool on) { _auto_next = on; }
 
   // ---- UI cues ----
 
-  // Play a UI cue by id. Pauses a running song, plays the cue (after an
-  // optional quiet gap — see setCueGap()), and resumes the song
-  // afterwards (also after an optional gap). All handled in step().
+  /**
+   * @brief Play a UI sound cue by its enum ID.
+   *
+   * Pauses a running song, plays the cue (after an optional pre-gap),
+   * then resumes the song (after an optional post-gap). All timing is
+   * handled non-blockingly in step(). If muted, does nothing.
+   * @param id Cue ID from the UiSfxCueId enum.
+   */
   void playCue(UiSfxCueId id) { playCue((uint8_t)id); }
 
   void playCue(uint8_t id) {
@@ -191,19 +240,31 @@ public:
     }
   }
 
-  // Silence around a cue: `before` waits quietly, then plays the cue,
-  // then `after` waits quietly before resuming any paused song.
-  // Both default to 0 (no gap). Non-blocking either way.
+  /**
+   * @brief Set silence gaps around UI cues.
+   *
+   * Waits @p before_ms of silence before playing a cue, then @p after_ms
+   * of silence before resuming any paused song. Both default to 0. Non-blocking.
+   * @param before_ms Silence (ms) before the cue plays.
+   * @param after_ms  Silence (ms) after the cue, before the song resumes.
+   */
   void setCueGap(uint16_t before_ms, uint16_t after_ms) {
     _gap_before_ms = before_ms;
     _gap_after_ms  = after_ms;
   }
+  /** @brief Set the pre-cue silence gap only. @param ms Gap duration in ms. */
   void     setCueGapBefore(uint16_t ms) { _gap_before_ms = ms; }
+  /** @brief Set the post-cue silence gap only. @param ms Gap duration in ms. */
   void     setCueGapAfter(uint16_t ms)  { _gap_after_ms  = ms; }
+  /** @brief Returns the current pre-cue silence gap in ms. */
   uint16_t cueGapBefore() const { return _gap_before_ms; }
+  /** @brief Returns the current post-cue silence gap in ms. */
   uint16_t cueGapAfter()  const { return _gap_after_ms; }
 
-  // Same, but look the cue up by name (e.g. "press", "success").
+  /**
+   * @brief Play a UI cue looked up by name (e.g. "press", "success").
+   * @param name Name of the cue as defined in UiSfx_Cues.h.
+   */
   void playCue(const char* name) {
     for (uint8_t i = 0; i < UISFX_CUE_COUNT; i++) {
       if (strcmp(UISFX_CUES[i].name, name) == 0) { playCue(i); return; }
@@ -211,8 +272,13 @@ public:
     Logger::warn("Buzzer: unknown cue '%s'", name);
   }
 
-  // Choose the cue theme (transpose + speed applied to every cue).
-  // Doesn't affect songs — only playCue().
+  /**
+   * @brief Select the cue theme (pitch/speed pack) by name.
+   *
+   * The chosen pack's transpose and speed are applied to every subsequent
+   * playCue() call. Does not affect song playback.
+   * @param name Name of the pack as defined in UiSfx_Cues.h.
+   */
   void setCuePack(const char* name) {
     for (uint8_t i = 0; i < UISFX_PACK_COUNT; i++) {
       if (strcmp(UISFX_PACKS[i].name, name) == 0) {
@@ -224,28 +290,46 @@ public:
     Logger::warn("Buzzer: unknown pack '%s'", name);
   }
 
-  // Same, but by index (e.g. restoring a saved setting) — silently
-  // ignores an out-of-range index instead of warning, since this is
-  // meant for loading trusted data, not typed-in commands.
+  /**
+   * @brief Select the cue theme by index (e.g. when restoring a saved setting).
+   *
+   * Silently ignores out-of-range indices — use this for loading trusted
+   * persisted data, not typed-in commands.
+   * @param index 0-based pack index.
+   */
   void setCuePack(uint8_t index) {
     if (index < UISFX_PACK_COUNT) _pack_index = index;
   }
 
+  /** @brief Returns the name of the currently active cue pack. */
   const char* cuePackName()  const { return UISFX_PACKS[_pack_index].name; }
+  /** @brief Returns the 0-based index of the currently active cue pack. */
   uint8_t     cuePackIndex() const { return _pack_index; }
 
   // ---- Mute (button/gesture cues only — songs are unaffected) ----
+  /**
+   * @brief Mute or unmute UI cues (songs are unaffected).
+   *
+   * When muted, playCue() does nothing at all — no sound, no song pausing.
+   * @param m true to mute, false to unmute.
+   */
   void setMuted(bool m) {
     _cue_muted = m;
     Logger::log("Buzzer: cues %s", m ? "muted" : "unmuted");
   }
+  /** @brief Returns true if UI cues are currently muted. */
   bool isMuted() const { return _cue_muted; }
+  /** @brief Toggle the mute state of UI cues. */
   void toggleMute()    { setMuted(!_cue_muted); }
 
   // ---- Info ----
+  /** @brief Returns true while a song or cue is playing. */
   bool        isPlaying() const { return _spk.isPlaying(); }
+  /** @brief Returns the 0-based index of the currently selected song. */
   uint8_t     songIndex() const { return _index; }
+  /** @brief Returns the display name of the currently selected song. */
   const char* songName()  const { return SONGLIST[_index].name; }
+  /** @brief Returns the total number of songs in the SONGLIST. */
   uint8_t     songCount() const { return SONGLIST_COUNT; }
 
 private:
@@ -276,19 +360,28 @@ private:
   bool          _in_post_gap     = false;  // currently waiting out the "after" gap
   unsigned long _gap_deadline_ms = 0;      // millis() time the current gap ends
 
-  // True once millis() has reached deadline — handles the ~49-day rollover safely.
+  /**
+   * @brief Returns true once millis() has reached or passed @p deadline.
+   *
+   * Uses signed arithmetic to handle the ~49-day millis() rollover safely.
+   * @param deadline Target timestamp from millis().
+   * @return true if the deadline has been reached.
+   */
   static bool dueBy(unsigned long deadline) {
     return (long)(millis() - deadline) >= 0;
   }
 
-  // Actually start playing a cue's (transposed) notes right now.
+  /**
+   * @brief Immediately start playing a cue (after any pre-gap has elapsed).
+   * @param id 0-based cue index into UISFX_CUES.
+   */
   void startCueNow(uint8_t id) {
     const UiSfxCue& cue = UISFX_CUES[id];
     buildTransposed(cue);
     _spk.play(_cue_buf, cue.count);
   }
 
-  // Cue (and its after-gap, if any) are done — resume a paused song, if any.
+  /** @brief Called when a cue (and its post-gap) have finished. Resumes any song that was paused for the cue. */
   void resumeAfterCue() {
     _ducking = false;
     if (_song_paused) {
@@ -297,7 +390,13 @@ private:
     }
   }
 
-  // Apply the current pack's transpose + speed to a cue into _cue_buf.
+  /**
+   * @brief Transpose and speed-adjust a cue into the internal _cue_buf.
+   *
+   * Applies the current pack's semitone offset and speed percentage to
+   * every note and stores the result in _cue_buf, ready for playback.
+   * @param cue The source cue from UISFX_CUES.
+   */
   void buildTransposed(const UiSfxCue& cue) {
     const UiSfxPack& pack = UISFX_PACKS[_pack_index];
     for (uint8_t i = 0; i < cue.count; i++) {

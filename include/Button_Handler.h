@@ -30,27 +30,35 @@
 */
 
 #include <Arduino.h>
-
+/// @brief A class that handles button gestures (single press, double press, triple press, and hold) for a single push button. It debounces the button input and counts clicks to determine the gesture performed.
 class GestureButton {
 public:
-  // A gesture action: any "void myFunction()" — passed in the constructor.
+
+  /// @brief A type definition for a callback function that takes no arguments and returns void. This is used for the gesture actions (SP, DP, TP, HOLD).
   typedef void (*Callback)();
 
-  // pin + the 4 gesture actions (pass nullptr for gestures you don't use)
+  /// @brief Constructs a GestureButton object with the specified pin and gesture callbacks.
+  /// @param pin The pin number where the button is connected.
+  /// @param onSP Callback function for single press gesture.
+  /// @param onDP Callback function for double press gesture.
+  /// @param onTP Callback function for triple press gesture.
+  /// @param onHold Callback function for hold gesture.
   GestureButton(uint8_t pin,
                 Callback onSP, Callback onDP,
                 Callback onTP, Callback onHold)
     : _pin(pin), _onSP(onSP), _onDP(onDP), _onTP(onTP), _onHold(onHold) {}
 
-  // Hardware init — call from setup()
-  void Setup() { pinMode(_pin, INPUT_PULLUP); }
+  /// @brief Initializes the button by setting the pin mode to INPUT_PULLUP. This should be called in the setup() function.
+  /// @param pin The pin number where the button is connected.
+  void setup() { pinMode(_pin, INPUT_PULLUP); }
 
   // Tunable timing (public on purpose — adjust after construction if needed)
   uint16_t DEBOUNCE_MS  = 25;    // ignore contact bounce shorter than this
   uint16_t CLICK_GAP_MS = 400;   // max pause between clicks of a multi-click
   uint16_t HOLD_MS      = 3000;  // press this long to trigger the hold gesture
-
-  // Call every frame with the current millis()
+  
+  /// @brief Updates the button state based on the current time.
+  /// @param now The current time in milliseconds.
   void update(unsigned long now) {
     // 1) Debounce the raw reading (INPUT_PULLUP: pressed = LOW)
     bool reading = (digitalRead(_pin) == LOW);

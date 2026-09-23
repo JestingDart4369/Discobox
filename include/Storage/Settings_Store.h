@@ -46,25 +46,43 @@
 
 #include <EEPROM.h>
 
+/**
+ * @brief Layout of the data block written to EEPROM/flash.
+ *
+ * @note Bump @p version whenever the struct shape changes so that stale
+ * flash data is detected and replaced with defaults rather than misread.
+ * Never call-from loop() — EEPROM flash wears out (~1 k–10 k write cycles).
+ */
 struct PersistedSettings {
-  uint16_t magic;          // "is this actually our data?" check
-  uint8_t  version;        // bump when the struct shape changes
-  uint8_t  cuePackIndex;
-  uint16_t gapBeforeMs;
-  uint16_t gapAfterMs;
-  uint8_t  muted;           // 0/1 — bool's stored size isn't guaranteed
-  uint8_t  brightness;
+  uint16_t magic;       ///< Sentinel value (0xD15C) — confirms this is our data
+  uint8_t  version;     ///< Struct version — bump when fields are added/removed
+  uint8_t  cuePackIndex; ///< Active cue theme pack index
+  uint16_t gapBeforeMs; ///< Pre-cue silence gap in ms
+  uint16_t gapAfterMs;  ///< Post-cue silence gap in ms
+  uint8_t  muted;       ///< Cue mute state (0 = off, 1 = muted; avoids bool size ambiguity)
+  uint8_t  brightness;  ///< Ring LED brightness (0..255)
 };
 
+/**
+ * @brief Persists and restores user settings across power cycles.
+ *
+ * Wraps Arduino EEPROM (backed by Renesas flash on the Uno R4).
+ * A single global instance `Persist` is created at the bottom of this file.
+ *
+ * @note Never call save() from loop()/step() — flash wears out quickly
+ * under sustained write pressure. Only save when a setting actually changes.
+ */
 class SettingsStore {
 public:
-  static const uint16_t MAGIC   = 0xD15C;   // arbitrary, just "not garbage"
-  static const uint8_t  VERSION = 1;
+  static const uint16_t MAGIC   = 0xD15C;   ///< Sentinel value — "not garbage"
+  static const uint8_t  VERSION = 1;         ///< Current struct version
 
-  // Read flash and apply it to Buzzer / RingOFLeds. If nothing valid is
-  // there yet (first boot ever, or the struct shape changed since the
-  // last save), seeds flash with the current (default) settings instead,
-  // so there's something sane to load next time.
+  /**
+   * @brief Read flash and apply the stored settings to Buzzer and RingOFLeds.
+   *
+   * On first boot ever (or after a struct-shape change), seeds flash with
+   * the current default settings and logs a message.
+   */
   void load() {
     PersistedSettings d;
     EEPROM.get(0, d);
@@ -85,9 +103,13 @@ public:
                 d.muted ? "muted" : "on", d.brightness);
   }
 
-  // Snapshot the current settings from Buzzer / RingOFLeds and write them
-  // to flash. Call this right after changing something you want to stick
-  // — not from loop()/step(), see the file header on why.
+  /**
+   * @brief Snapshot current settings from Buzzer / RingOFLeds and write to flash.
+   *
+   * Call this right after a setting changes (not from loop()/step()).
+   * EEPROM.put() only rewrites bytes that actually differ, so re-saving the
+   * same values costs nothing.
+   */
   void save() {
     PersistedSettings d;
     d.magic        = MAGIC;

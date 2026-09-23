@@ -44,19 +44,25 @@
 /* ================================================================
    SettingItem — every setting inherits from this
    ================================================================ */
-class SettingItem {
+/// @brief The base class for all settings in the Discobox project. Each setting inherits from this class and overrides its virtual methods to define specific behavior for that setting.
+   class SettingItem {
 public:
+  /// @brief Virtual destructor for the SettingItem class. Ensures proper cleanup of derived classes.
   virtual ~SettingItem() {}
 
+  /// @brief Returns the name of the setting, which is shown in the log. This method must be overridden by derived classes to provide the specific name of the setting.
+  /// @return The name of the setting as a C-style string. 
   virtual const char* name() const = 0;   // shown in the log
 
   // Called the instant this becomes the selected setting (SP/TP just
   // landed on it). Default just logs the live value — override if a
   // setting needs to do more on selection.
+  /// @brief Called when the setting becomes the selected setting. Override this method to define behavior that should occur when the setting is selected.
   virtual void Enter() { logValue(); }
 
   // SP — step the value up one notch, wrapping back to the start once
   // it passes its max. The only value-changing gesture there is.
+  /// @brief Called when the setting's value should be incremented (e.g., on a single press). Override this method to define how the setting's value should change.
   virtual void bump() {}
 
   // Sound cue played after bump() (see Modes.h's Settings::cueForSP() —
@@ -64,6 +70,8 @@ public:
   // and any theme/pack change already applies to it). Default matches
   // the generic double-click every other mode's DP uses; override for
   // something more demonstrative (e.g. cue themes want to be heard).
+  /// @brief Returns the sound cue to be played after the setting's value has been changed. This method can be overridden by derived classes to provide a specific sound cue that reflects the change in the setting's value.
+  /// @return The UiSfxCueId representing the sound cue to be played after the setting's value has been changed. The default implementation returns UISFX_DOUBLE_CLICK, but derived classes can override this to provide a different sound cue that reflects the change in the setting's value.
   virtual UiSfxCueId cueForBump() const { return UISFX_DOUBLE_CLICK; }
 
 protected:
@@ -76,6 +84,12 @@ protected:
 /* ================================================================
    Ring brightness
    ================================================================ */
+/**
+ * @brief Setting that steps the WS2812 ring brightness in ~15 increments.
+ *
+ * Each SP bump increases brightness by 17 (≈ 255/15 steps), wrapping back
+ * to 0 past maximum. Value is persisted immediately via Persist.save().
+ */
 class BrightnessSetting : public SettingItem {
 public:
   const char* name() const override { return "brightness"; }
@@ -102,6 +116,12 @@ private:
 /* ================================================================
    Cue mute (button/gesture cues only — see Buzzer_Player.h)
    ================================================================ */
+/**
+ * @brief Setting that toggles the UI cue mute flag.
+ *
+ * When muted, playCue() does nothing and songs keep playing uninterrupted.
+ * Value is persisted immediately via Persist.save().
+ */
 class CueMuteSetting : public SettingItem {
 public:
   const char* name() const override { return "mute"; }
@@ -122,6 +142,12 @@ protected:
 /* ================================================================
    Cue theme (pitch/speed pack — see UiSfx_Cues.h)
    ================================================================ */
+/**
+ * @brief Setting that cycles through the available UI cue themes (pitch/speed packs).
+ *
+ * Each SP bump advances to the next pack and immediately plays a demo cue
+ * so the user can hear the change. Value is persisted via Persist.save().
+ */
 class CueThemeSetting : public SettingItem {
 public:
   const char* name() const override { return "theme"; }
@@ -148,31 +174,43 @@ protected:
 /* ================================================================
    SettingsMenu — selection + forwarding, owned by Modes.h's Settings mode
    ================================================================ */
+/**
+ * @brief Manages the ordered list of settings and which one is currently selected.
+ *
+ * Mirrors the ModeManager pattern: owns a pointer array of SettingItem*,
+ * tracks the selected index, and forwards navigation/bump calls.
+ * A single global instance `SettingsList` is created at the bottom of this file.
+ */
 class SettingsMenu {
 public:
+  /** @brief Constructs the menu from an array of setting pointers. @param list Array of SettingItem pointers. @param count Number of settings. */
   SettingsMenu(SettingItem** list, uint8_t count) : _list(list), _count(count) {}
 
-  // Call from Settings::Enter() — always starts back on the first setting.
+  /** @brief Reset selection to the first setting and call its Enter(). Call from Settings::Enter(). */
   void begin() { _index = 0; current().Enter(); }
 
-  // DP — next setting in the list (wraps).
+  /** @brief Select the next setting (wraps) and call its Enter(). Called on DP. */
   void next() {
     _index = (uint8_t)((_index + 1) % _count);
     current().Enter();
   }
 
-  // TP — previous setting in the list (wraps).
+  /** @brief Select the previous setting (wraps) and call its Enter(). Called on TP. */
   void previous() {
     _index = (uint8_t)((_index + _count - 1) % _count);
     current().Enter();
   }
 
-  // SP — bump the CURRENT setting's value.
+  /** @brief Bump the currently selected setting's value. Called on SP. */
   void bump() { current().bump(); }
 
+  /** @brief Returns a reference to the currently selected setting. */
   SettingItem& current()          { return *_list[_index]; }
-  SettingItem& at(uint8_t i)      { return *_list[i]; }   // for listing, doesn't change selection
+  /** @brief Returns a reference to setting at position @p i (for listing without changing selection). @param i 0-based index. */
+  SettingItem& at(uint8_t i)      { return *_list[i]; }
+  /** @brief Returns the 0-based index of the currently selected setting. */
   uint8_t      index()   const { return _index; }
+  /** @brief Returns the total number of registered settings. */
   uint8_t      count()   const { return _count; }
 
 private:
