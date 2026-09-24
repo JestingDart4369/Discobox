@@ -1,6 +1,7 @@
 #pragma once
+#define DFPLAYERCONTROLLER_H  // allows other headers to detect this via #ifdef
 /*
-  dfplayer.h — DFPlayer Mini Controller
+  DFPlayerController.h — DFPlayer Mini Controller
 
   Verwaltet Wiedergabe, Playlist (Auto-Next) und Zustand intern.
   step() muss jeden loop() aufgerufen werden — darin wird erkannt
@@ -15,32 +16,31 @@
   Verwendung (das Serial-Objekt kommt von main.cpp — wie speaker beim Buzzer):
 
     // main.cpp:
-    SoftwareSerial dfSerial(6, 7);         // RX=6, TX=7
-    DFPlayerController Audio(dfSerial);    // Objekt mit Serial verknüpfen
+    // Global instance `DFPlayer` is auto-created at the bottom of this file.
+    // Just call:
+    Serial1.begin(9600);          // before DFPlayer.begin()
+    DFPlayer.begin(25);           // in setup()
+    DFPlayer.playFolder(1, 1);   // /01/001.mp3 starten
+    DFPlayer.pause();
+    DFPlayer.resume();
+    DFPlayer.next();
+    DFPlayer.previous();
+    DFPlayer.setVolume(20);
+    DFPlayer.volumeUp();
+    DFPlayer.volumeDown();
+    DFPlayer.setAutoNext(true);  // Playlist: nächsten Track automatisch spielen
+    DFPlayer.step();              // jeden loop() aufrufen!
 
-    Audio.begin(25);            // in setup()
-    Audio.playFolder(1, 1);    // /01/001.mp3 starten
-    Audio.pause();
-    Audio.resume();
-    Audio.next();
-    Audio.previous();
-    Audio.setVolume(20);
-    Audio.volumeUp();
-    Audio.volumeDown();
-    Audio.setAutoNext(true);    // Playlist: nächsten Track automatisch spielen
-    Audio.step();               // jeden loop() aufrufen!
-
-    Audio.isPlaying()           // true wenn gerade Musik läuft
-    Audio.trackChanged()        // true für genau einen loop()-Durchlauf nach Track-Wechsel
-    Audio.currentFolder()
-    Audio.currentTrack()
-    Audio.volume()
-    Audio.isOK()
-    Audio.playingForMs()        // wie lange läuft der Track schon (ms)
+    DFPlayer.isPlaying()          // true wenn gerade Musik läuft
+    DFPlayer.trackChanged()       // true für genau einen loop()-Durchlauf nach Track-Wechsel
+    DFPlayer.currentFolder()
+    DFPlayer.currentTrack()
+    DFPlayer.volume()
+    DFPlayer.isOK()
+    DFPlayer.playingForMs()       // wie lange läuft der Track schon (ms)
 */
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 
 /**
@@ -50,13 +50,17 @@
  * and playback state tracking. All operations are non-blocking —
  * the only thing that must run every loop() iteration is step().
  *
- * A single global instance `Audio` is created at the bottom of this file,
- * wired to the `dfSerial` SoftwareSerial defined there.
+ * Takes a Stream& so it works with both HardwareSerial (R4 WiFi → Serial1)
+ * and SoftwareSerial (AVR boards). Pass whichever serial port the DFPlayer
+ * is wired to — do NOT call .begin() on it yourself; DFPlayerController
+ * does that internally in begin().
+ *
+ * A single global instance `Audio` is created at the bottom of this file.
  */
 class DFPlayerController {
 public:
-  /** @brief Constructs a DFPlayerController backed by an existing SoftwareSerial. @param serial The serial port to use (e.g. SoftwareSerial on pins 6/7). */
-  DFPlayerController(SoftwareSerial& serial) : _serial(serial) {}
+  /** @brief Constructs a DFPlayerController. @param serial Any Stream (Serial1, SoftwareSerial, …) the DFPlayer is wired to. */
+  DFPlayerController(Stream& serial) : _serial(serial) {}
 
   // ── Initialisierung ─────────────────────────────────────
 
@@ -66,7 +70,8 @@ public:
    * @return true if the DFPlayer responded; false if not found (audio skipped).
    */
   bool begin(uint8_t volume = 25) {
-    _serial.begin(9600);
+    // Serial port must already be started by main.cpp before calling begin()
+    // (e.g. Serial1.begin(9600) for R4 WiFi, or dfSerial.begin(9600) for AVR).
     delay(2000);  // DFPlayer Bootzeit
 
     if (_player.begin(_serial, false)) {  // false = kein ACK (Clone-kompatibel)
@@ -238,7 +243,7 @@ public:
   }
 
 private:
-  SoftwareSerial&     _serial;
+  Stream&             _serial;
   DFRobotDFPlayerMini _player;
 
   bool    _ok            = false;
@@ -255,15 +260,25 @@ private:
   uint32_t _last_poll_ms  = 0;  // rate-limits available() polling
 };
 
-// Globale Instanz — Serial und Audio hier definiert, genau wie
+// Globale Instanz — Audio hier definiert, genau wie
 // speakerController + BuzzerPlayer am Ende von Buzzer_Player.h.
-// Pins kommen via #define aus main.cpp (DF_RX_PIN / DF_TX_PIN).
-// In main.cpp einfach dfplayer.h VOR Serial_Handler.h includen.
-#ifndef DF_RX_PIN
-#define DF_RX_PIN 6   // Arduino D6 ← DFPlayer TX
+//
+// R4 WiFi: uses Serial1 (D0=RX, D1=TX).
+//   In main.cpp call Serial1.begin(9600) BEFORE Audio.begin().
+//
+// AVR boards: define DF_USE_SOFTWARE_SERIAL + DF_RX_PIN/DF_TX_PIN
+//   in main.cpp before including this file to use SoftwareSerial instead.
+#ifdef DF_USE_SOFTWARE_SERIAL
+  #include <SoftwareSerial.h>
+  #ifndef DF_RX_PIN
+  #define DF_RX_PIN 6
+  #endif
+  #ifndef DF_TX_PIN
+  #define DF_TX_PIN 7
+  #endif
+  SoftwareSerial     dfSerial(DF_RX_PIN, DF_TX_PIN);
+  DFPlayerController DFPlayer(dfSerial);
+#else
+  // Default: hardware Serial1 (R4 WiFi D0/D1)
+  DFPlayerController DFPlayer(Serial1);
 #endif
-#ifndef DF_TX_PIN
-#define DF_TX_PIN 7   // Arduino D7 → DFPlayer RX (1kΩ in Serie!)
-#endif
-SoftwareSerial        dfSerial(DF_RX_PIN, DF_TX_PIN);
-DFPlayerController    Audio(dfSerial);

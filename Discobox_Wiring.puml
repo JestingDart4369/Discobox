@@ -1,0 +1,125 @@
+@startuml Discobox_Wiring
+
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam ArrowColor #555555
+skinparam ComponentBackgroundColor #FAFAFA
+skinparam ComponentBorderColor #AAAAAA
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F9A825
+
+title Discobox — Runtime Wiring (main.cpp)
+
+/' ================================================================
+   HARDWARE / INPUTS
+   ================================================================ '/
+
+package "Hardware" #EEF2FF {
+    [Button\n(D2)] as HW_BTN
+    [Speaker\n(D9)] as HW_SPK
+    [Ring LEDs\n(D4, 16×WS2812)] as HW_RING
+    [RGB Button LED\n(D3/D5/D6)] as HW_RGB
+    [WS2805 Strip\n(D7, SPI)] as HW_STRIP
+    [EEPROM] as HW_EEPROM
+}
+
+/' ================================================================
+   RUNTIME OBJECTS (global instances in main.cpp)
+   ================================================================ '/
+
+package "Input" #E8F5E9 {
+    [GestureButton\nButton] as OBJ_BTN
+}
+
+package "LED Objects" #E3F2FD {
+    [ARGB<D4,16>\nRingOFLeds] as OBJ_RING
+    [RGBLeds<D3,D5,D6>\nRGBButton] as OBJ_RGB
+    [WS2805<D7>\nStrip] as OBJ_STRIP
+}
+
+package "Audio Objects" #FFF3E0 {
+    [speakerController\nspeaker] as OBJ_SPK
+    [BuzzerPlayer\nBuzzer] as OBJ_BUZZ
+}
+
+package "Control" #FCE4EC {
+    [ModeManager\nModes] as OBJ_MODES
+    [SerialCommander\nSerialCmd] as OBJ_SERIAL
+}
+
+package "Persistence" #F3E5F5 {
+    [SettingsStore\nPersist] as OBJ_PERSIST
+    [SettingsMenu\nMenu] as OBJ_MENU
+}
+
+package "Cross-cutting" #ECEFF1 {
+    [Logger] as OBJ_LOG
+}
+
+/' ================================================================
+   HARDWARE BINDINGS
+   ================================================================ '/
+
+OBJ_BTN   --> HW_BTN   : digitalRead
+OBJ_RING  --> HW_RING  : FastLED SPI
+OBJ_RGB   --> HW_RGB   : analogWrite PWM
+OBJ_STRIP --> HW_STRIP : SPI 2.4 MHz
+OBJ_SPK   --> HW_SPK   : tone()
+OBJ_PERSIST --> HW_EEPROM : load() / save()
+
+/' ================================================================
+   OBJECT WIRING
+   ================================================================ '/
+
+' Button → Modes + Buzzer (gestures)
+OBJ_BTN --> OBJ_MODES : SP / DP / TP\n(active mode action)
+OBJ_BTN --> OBJ_BUZZ  : playCue()\n(after mode action)
+note on link
+  Hold → Modes.nextMode()
+  + playCue(LONG_PRESS)
+end note
+
+' Modes → LEDs
+OBJ_MODES --> OBJ_RING  : setToColor / wipe\n/ disco / loading
+OBJ_MODES --> OBJ_RGB   : setToColor\n(status color)
+OBJ_MODES --> OBJ_STRIP : setToColor / CCT\n/ flicker / disco
+
+' Modes → Audio
+OBJ_MODES --> OBJ_BUZZ  : play() / stop()\n/ playCue()
+
+' Audio chain
+OBJ_BUZZ  --> OBJ_SPK   : play(notes) / stop()
+
+' Serial → everything
+OBJ_SERIAL --> OBJ_MODES : sp / dp / tp / hold\n/ mode N
+OBJ_SERIAL --> OBJ_BUZZ  : play / stop / vol
+OBJ_SERIAL --> OBJ_RING  : color / bright
+
+' Settings persistence
+OBJ_PERSIST --> OBJ_BUZZ  : restores theme\n/ mute / gap
+OBJ_PERSIST --> OBJ_RING  : restores brightness
+OBJ_MENU    --> OBJ_RING  : BrightnessSetting
+OBJ_MENU    --> OBJ_BUZZ  : CueMuteSetting\n/ CueThemeSetting
+OBJ_MODES   --> OBJ_MENU  : Settings mode\nwraps SettingsMenu
+
+' Logger (used by everything)
+OBJ_LOG <.. OBJ_MODES   : Logger::log()
+OBJ_LOG <.. OBJ_BUZZ    : Logger::log()
+OBJ_LOG <.. OBJ_STRIP   : Logger::log()\n(#ifdef LOGGER_H)
+OBJ_LOG <.. OBJ_SERIAL  : Logger::log()
+OBJ_LOG <.. OBJ_PERSIST : Logger::log()
+
+/' ================================================================
+   LOOP CALL ORDER (notes)
+   ================================================================ '/
+
+note as N_LOOP
+  <b>loop() call order (every iteration)</b>
+  1. Buzzer.step()        — keeps song tight
+  ── 40 FPS gate ──
+  2. Button.update(now)   — gesture detection
+  3. SerialCmd.update()   — serial commands
+  4. Modes.Step(now)      — active mode animation
+end note
+
+@enduml

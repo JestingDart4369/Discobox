@@ -16,9 +16,10 @@
 #include <Logger.h>
 #include <GestureButton.h>
 #include <WS2805.h>
-//Audio
+// Buzzer (piezo songs)
 #include <SongPlayer.h>
-
+// DFPlayer Mini (MP3 over Serial1, D0=RX D1=TX)
+#include <DFPlayerController.h>
 // Configuration
 
   // Button config
@@ -26,7 +27,6 @@
 
   // Setup Speaker
     speakerController speaker(D9);
-
   // Song list player on top of the speaker (must come AFTER `speaker`)
     #include "Buzzer/Buzzer_Player.h"
   //  Setup Led
@@ -112,6 +112,9 @@ void setup() {
       Strip.show();
     //speaker:
       speaker.setup();
+    // DFPlayer Mini — Serial1 (D0=RX ← DFPlayer TX, D1=TX → DFPlayer RX via 1kΩ)
+      Serial1.begin(9600);
+      DFPlayer.begin(20);   // volume 0-30; begin() blocks ~2s for DFPlayer boot
 
     //settings saved from last time (cue theme/gap/mute, brightness) —
     //loaded before the boot cues below, so they already sound right.
@@ -145,6 +148,7 @@ uint8_t fps = 40; // max animation frame rate
 uint8_t milis_fps = 1000 / fps;
 void loop() {
   Buzzer.step();     // every iteration — keeps song tight (+ auto-next)
+  DFPlayer.step();   // every iteration — detects track-end, auto-next
 
   unsigned long now = millis();
   if (now - _last_anim_frame >= milis_fps) { // 40 fps max for animations, button handling, etc.

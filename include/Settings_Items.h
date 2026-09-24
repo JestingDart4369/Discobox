@@ -172,6 +172,37 @@ protected:
 
 
 /* ================================================================
+   DFPlayer volume
+   ================================================================ */
+/**
+ * @brief Setting that steps the DFPlayer volume in increments of 2 (0–30).
+ *
+ * Each SP bump increases volume by 2, wrapping back to 0 past 30.
+ * Value is persisted immediately via Persist.save().
+ */
+class VolumeSetting : public SettingItem {
+public:
+  const char* name() const override { return "volume"; }
+
+  void bump() override {
+    uint8_t v = DFPlayer.volume() + STEP;
+    if (v > 30) v = 0;
+    DFPlayer.setVolume(v);
+    Persist.save();
+    logValue();
+  }
+
+protected:
+  void logValue() const override {
+    Logger::log("Settings: volume = %d", DFPlayer.volume());
+  }
+
+private:
+  static const uint8_t STEP = 2;  // 16 steps: 0, 2, 4, … 30
+};
+
+
+/* ================================================================
    SettingsMenu — selection + forwarding, owned by Modes.h's Settings mode
    ================================================================ */
 /**
@@ -225,10 +256,11 @@ private:
    To add a setting: create an instance, add it to SETTINGS_LIST.
    ================================================================ */
 BrightnessSetting settingBrightness;
+VolumeSetting      settingVolume;
 CueMuteSetting     settingMute;
 CueThemeSetting    settingTheme;
 
-SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingMute, &settingTheme };
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingVolume, &settingMute, &settingTheme };
 SettingsMenu SettingsList(SETTINGS_LIST, sizeof(SETTINGS_LIST) / sizeof(SETTINGS_LIST[0]));
 
 #endif // SETTINGS_ITEMS_H

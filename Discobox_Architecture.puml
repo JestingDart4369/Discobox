@@ -1,16 +1,15 @@
 @startuml Discobox_Architecture
-
 skinparam classAttributeIconSize 0
 
 /' ================================================================
    NAMESPACE / UTILITY
    ================================================================ '/
 
-namespace LedUtil {
-    +hexR(h: uint32_t) : uint8_t
-    +hexG(h: uint32_t) : uint8_t
-    +hexB(h: uint32_t) : uint8_t
-    +hsvToRgb(hue: uint8_t, sat: uint8_t, val: uint8_t) : CRGB
+class LedUtil <<namespace>> {
+    +{static} hexR(h: uint32_t) : uint8_t
+    +{static} hexG(h: uint32_t) : uint8_t
+    +{static} hexB(h: uint32_t) : uint8_t
+    +{static} hsvToRgb(hue: uint8_t, sat: uint8_t, val: uint8_t) : CRGB
 }
 
 
@@ -84,6 +83,56 @@ class RGBLeds <template<r_pin, g_pin, b_pin, LED_COMMON_ANODE=false>> {
 LEDBase <|-- ARGB
 LEDBase <|-- RGBLeds
 ILedStrip <|-- ARGB
+ILedStrip <|-- RGBLeds
+/' ── WS2805 RGBCCT (lib/WS2805/) ── '/
+
+struct RGBCCT {
+    +r : uint8_t
+    +g : uint8_t
+    +b : uint8_t
+    +cw : uint8_t
+    +ww : uint8_t
+    +RGBCCT(r: uint8_t, g: uint8_t, b: uint8_t, cw: uint8_t, ww: uint8_t)
+}
+
+class WS2805Driver {
+    +begin() : void
+    +show(pixels: const RGBCCT*, count: uint16_t) : void
+    -{static} encodeChannel(v: uint8_t, out: uint8_t[3]) : void
+    -{static} RESET_BYTES : uint8_t
+    -_buf : uint8_t[]
+    note "Logger::log() called in begin()\nif LOGGER_H is defined" as N_WS2805Driver
+}
+
+class WS2805 <template<Led_Number: uint16_t>> {
+    +setup() : void
+    +show() : void
+    +clear() : void
+    +setToColor(r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +setToColorCCT(r: uint8_t, g: uint8_t, b: uint8_t, cw: uint8_t, ww: uint8_t) : void
+    +setAllWW(brightness: uint8_t) : void
+    +setAllCW(brightness: uint8_t) : void
+    +fadeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +setToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +fadeToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +wipeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +stepDisco() : void
+    +showDisco() : void
+    +flickerBegin() : void
+    +flickerUpdate() : void
+    -_driver : WS2805Driver
+    -_leds : RGBCCT[Led_Number]
+    -_flickCurrent : uint8_t[Led_Number]
+    -_flickTarget : uint8_t[Led_Number]
+    -_sc(v: uint8_t) : uint8_t
+    -_scaled(r, g, b, cw, ww: uint8_t) : RGBCCT
+    note "Only compiled when LED_CONTROLLER_H\nis defined (LedController.h included first)" as N_WS2805
+}
+
+LEDBase  <|-- WS2805
+ILedStrip <|-- WS2805
+WS2805 *-- WS2805Driver
+WS2805Driver ..> RGBCCT
 
 
 /' ================================================================
@@ -166,6 +215,37 @@ class BuzzerPlayer {
 speakerController o-- SongNote
 BuzzerPlayer o-- speakerController
 BuzzerPlayer o-- Song
+
+class DFPlayerController {
+    +DFPlayerController(serial: Stream&)
+    +begin(volume: uint8_t) : bool
+    +step() : void
+    +playFolder(folder: uint8_t, track: uint8_t) : void
+    +playFolderLoop(folder: uint8_t) : void
+    +pause() : void
+    +resume() : void
+    +next() : void
+    +previous() : void
+    +setAutoNext(on: bool) : void
+    +setVolume(vol: uint8_t) : void
+    +volumeUp() : void
+    +volumeDown() : void
+    +isOK() : bool
+    +isPlaying() : bool
+    +trackChanged() : bool
+    +currentFolder() : uint8_t
+    +currentTrack() : uint8_t
+    +volume() : uint8_t
+    +playingForMs() : uint32_t
+    -_serial : Stream&
+    -_player : DFRobotDFPlayerMini
+    -_ok : bool
+    -_playing : bool
+    -_auto_next : bool
+    -_folder : uint8_t
+    -_track : uint8_t
+    -_vol : uint8_t
+}
 
 
 /' ================================================================
@@ -299,6 +379,13 @@ class CueThemeSetting {
     #logValue() : void
 }
 
+class VolumeSetting {
+    +name() : const char*
+    +bump() : void
+    #logValue() : void
+    -{static} STEP : uint8_t
+}
+
 class SettingsMenu {
     +SettingsMenu(list: SettingItem**, count: uint8_t)
     +begin() : void
@@ -317,7 +404,9 @@ class SettingsMenu {
 SettingItem <|-- BrightnessSetting
 SettingItem <|-- CueMuteSetting
 SettingItem <|-- CueThemeSetting
+SettingItem <|-- VolumeSetting
 SettingsMenu o-- SettingItem
+VolumeSetting ..> DFPlayerController : Audio.setVolume()
 
 
 /' ================================================================
@@ -332,6 +421,7 @@ struct PersistedSettings {
     +gapAfterMs : uint16_t
     +muted : uint8_t
     +brightness : uint8_t
+    +volume : uint8_t
 }
 
 class SettingsStore {

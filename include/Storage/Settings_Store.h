@@ -61,6 +61,7 @@ struct PersistedSettings {
   uint16_t gapAfterMs;  ///< Post-cue silence gap in ms
   uint8_t  muted;       ///< Cue mute state (0 = off, 1 = muted; avoids bool size ambiguity)
   uint8_t  brightness;  ///< Ring LED brightness (0..255)
+  uint8_t  volume;      ///< DFPlayer volume (0..30)
 };
 
 /**
@@ -75,7 +76,7 @@ struct PersistedSettings {
 class SettingsStore {
 public:
   static const uint16_t MAGIC   = 0xD15C;   ///< Sentinel value — "not garbage"
-  static const uint8_t  VERSION = 1;         ///< Current struct version
+  static const uint8_t  VERSION = 2;         ///< Bumped: added volume field
 
   /**
    * @brief Read flash and apply the stored settings to Buzzer and RingOFLeds.
@@ -97,10 +98,11 @@ public:
     Buzzer.setCueGap(d.gapBeforeMs, d.gapAfterMs);
     Buzzer.setMuted(d.muted != 0);
     RingOFLeds.setBrightness(d.brightness);
+    DFPlayer.setVolume(d.volume);
 
-    Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, brightness %d)",
+    Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, brightness %d, vol %d)",
                 Buzzer.cuePackName(), d.gapBeforeMs, d.gapAfterMs,
-                d.muted ? "muted" : "on", d.brightness);
+                d.muted ? "muted" : "on", d.brightness, d.volume);
   }
 
   /**
@@ -119,6 +121,7 @@ public:
     d.gapAfterMs   = Buzzer.cueGapAfter();
     d.muted        = Buzzer.isMuted() ? 1 : 0;
     d.brightness   = RingOFLeds.getBrightness();
+    d.volume       = DFPlayer.volume();
 
     EEPROM.put(0, d);   // only actually rewrites bytes that changed
     Logger::log("Settings: saved");
