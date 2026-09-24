@@ -44,18 +44,18 @@
   defined — the global Buzzer instance uses it.
 */
 
-#include "Buzzer/SongsPlayer/SongPlayer.h"
-#include "Buzzer/UiSfx/UiSfx_Cues.h"
+#include <SongPlayer.h>
+#include <UiSfx_Cues.h>
 
 //songs
-  #include "Buzzer/SongsPlayer/Songs/BackInTime_song.h"  // BackInTime_Notes / BackInTime_notes_count
-  #include "Buzzer/SongsPlayer/Songs/Solas_Melody.h"     // Solas_Melody / Solas_Melody_count
-  #include "Buzzer/SongsPlayer/Songs/megaovenia_song.h"   // Megalovenia / Megalovenia_count
-  #include "Buzzer/SongsPlayer/Songs/supermario_song.h"
-  #include "Buzzer/SongsPlayer/Songs/sims2_song.h"
-  #include "Buzzer/SongsPlayer/Songs/minecraft_sweden_song.h"
-  #include "Buzzer/SongsPlayer/Songs/Pokemon_Red_Opening_song.h"
-  #include "Buzzer/SongsPlayer/Songs/DancingQueen_song.h"
+  #include "Buzzer/Songs/BackInTime_song.h"  // BackInTime_Notes / BackInTime_notes_count
+  #include "Buzzer/Songs/Solas_Melody.h"     // Solas_Melody / Solas_Melody_count
+  #include "Buzzer/Songs/megaovenia_song.h"   // Megalovenia / Megalovenia_count
+  #include "Buzzer/Songs/supermario_song.h"
+  #include "Buzzer/Songs/sims2_song.h"
+  #include "Buzzer/Songs/minecraft_sweden_song.h"
+  #include "Buzzer/Songs/Pokemon_Red_Opening_song.h"
+  #include "Buzzer/Songs/DancingQueen_song.h"
 
 /* ----------------------------------------------------------------
    The song list

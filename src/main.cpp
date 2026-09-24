@@ -3,7 +3,7 @@
 //
 // main.cpp only does: hardware setup + wiring the pieces together.
 //   include/Modes.h          — all modes + their gesture actions (OOP)
-//   include/Button_Handler.h — button gesture detection (SP/DP/TP/hold)
+//   lib/GestureButton/GestureButton.h — button gesture detection (SP/DP/TP/hold)
 //   include/Lights/...       — LED control classes
 //   include/Buzzer/...       — speaker + songs + UI sound cues
 ///Documentation Layout Pins
@@ -12,11 +12,11 @@
 
 // Include necessary libraries
 #include <Arduino.h>
-#include "Lights/led_Controller_h.h"
-#include "Logger_Handler.h"
-#include "Button_Handler.h"
+#include <LedController.h>
+#include <Logger.h>
+#include <GestureButton.h>
 //Audio
-#include "Buzzer/SongsPlayer/SongPlayer.h"
+#include <SongPlayer.h>
 
 // Configuration
 
@@ -106,7 +106,7 @@ void setup() {
       RingOFLeds.show();
 
     //speaker:
-      speaker.Setup();
+      speaker.setup();
 
     //settings saved from last time (cue theme/gap/mute, brightness) —
     //loaded before the boot cues below, so they already sound right.

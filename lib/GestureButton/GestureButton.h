@@ -1,5 +1,5 @@
-#ifndef BUTTON_HANDLER_H
-#define BUTTON_HANDLER_H
+#ifndef GESTURE_BUTTON_H
+#define GESTURE_BUTTON_H
 /*
   Button_Handler.h — gesture detection for one push button (non-blocking).
 
@@ -118,4 +118,4 @@ private:
   bool          _hold_fired      = false;  // hold already triggered for this press
 };
 
-#endif // BUTTON_HANDLER_H
+#endif // GESTURE_BUTTON_H

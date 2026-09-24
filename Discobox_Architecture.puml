@@ -1,355 +1,401 @@
-@startuml
+@startuml Discobox_Architecture
 
+skinparam classAttributeIconSize 0
 
+/' ================================================================
+   NAMESPACE / UTILITY
+   ================================================================ '/
 
-
-
-/' Objects '/
-
-class ARGB <template<uint8_t DATA_PIN, uint8_t Led_Number, EOrder COLOR_ORDER=GRB>> {
-	+ARGB(uint8_t power_pin)
-	-hsvToRgb(uint8_t hue, uint8_t sat, uint8_t val) : CRGB
-	-_leds : CRGB[]
-	+Loading_Circle_progress() : uint8_t {query}
-	-_brightness : uint8_t
-	-_loading_progress : uint8_t
-	-_power_pin : uint8_t
-	+getBrightness() : uint8_t {query}
-	-{static} hexB(uint32_t h) : uint8_t
-	-{static} hexG(uint32_t h) : uint8_t
-	-{static} hexR(uint32_t h) : uint8_t
-	+All_FadeTo(uint8_t r, uint8_t g, uint8_t b, uint16_t steps, uint16_t frame_delay_ms) : void
-	+All_FadeTo_HSV(uint8_t hue, uint8_t sat, uint8_t val, uint16_t steps, uint16_t frame_delay_ms) : void
-	+All_FadeTo_Hex(uint32_t hex_color, uint16_t steps, uint16_t frame_delay_ms) : void
-	+All_Set(uint8_t r, uint8_t g, uint8_t b) : void
-	+All_Set_HSV(uint8_t hue, uint8_t sat, uint8_t val) : void
-	+All_Set_Hex(uint32_t hex_color) : void
-	+Disco_animation() : void
-	+Disco_step() : void
-	+FadeTO_Single(uint8_t led_position_index, uint8_t r, uint8_t g, uint8_t b, uint16_t steps, uint16_t frame_delay_ms) : void
-	+FadeTO_Single_HSV(uint8_t led_position_index, uint8_t hue, uint8_t sat, uint8_t val, uint16_t steps, uint16_t frame_delay_ms) : void
-	+FadeTO_Single_Hex(uint8_t led_position_index, uint32_t hex_color, uint16_t steps, uint16_t frame_delay_ms) : void
-	+Loading_Circle_reset() : void
-	+Loading_Circle_step(uint8_t hue) : void
-	+Set_Single(uint8_t led_position_index, uint8_t r, uint8_t g, uint8_t b) : void
-	+Set_Single_HSV(uint8_t led_position_index, uint8_t hue, uint8_t sat, uint8_t val) : void
-	+Set_Single_Hex(uint8_t led_position_index, uint32_t hex_color) : void
-	+Setup() : void
-	+WipeTo(uint8_t r, uint8_t g, uint8_t b, uint16_t fade_steps, uint16_t frame_delay_ms) : void
-	+WipeTo_HSV(uint8_t hue, uint8_t sat, uint8_t val, uint16_t fade_steps, uint16_t frame_delay_ms) : void
-	+WipeTo_Hex(uint32_t hex_color, uint16_t fade_steps, uint16_t frame_delay_ms) : void
-	+clear() : void
-	+setBrightness(uint8_t b) : void
-	+show() : void
+namespace LedUtil {
+    +hexR(h: uint32_t) : uint8_t
+    +hexG(h: uint32_t) : uint8_t
+    +hexB(h: uint32_t) : uint8_t
+    +hsvToRgb(hue: uint8_t, sat: uint8_t, val: uint8_t) : CRGB
 }
 
 
-class BrightnessSetting {
-	+name() : char* {query}
-	-{static} STEP : static const uint8_t
-	+bump() : void
-	#logValue() : void {query}
+/' ================================================================
+   LED LAYER
+   ================================================================ '/
+
+abstract class LEDBase {
+    +{abstract} setup() : void
+    +{abstract} show() : void
+    +{abstract} clear() : void
+    +{abstract} setToColor(r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +{abstract} fadeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +{abstract} stepDisco() : void
+    +{abstract} showDisco() : void
+    +virtual setBrightness(b: uint8_t) : void
+    +getBrightness() : uint8_t
+    +setToColorHSV(hue: uint8_t, sat: uint8_t, val: uint8_t) : void
+    +setToColorHex(hex: uint32_t) : void
+    +fadeToColorHSV(hue: uint8_t, sat: uint8_t, val: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +fadeToColorHex(hex: uint32_t, steps: uint16_t, delay_ms: uint16_t) : void
+    #_brightness : uint8_t = 255
 }
 
-
-class CueMuteSetting {
-	+name() : char* {query}
-	+bump() : void
-	#logValue() : void {query}
+class ILedStrip {
+    +{abstract} wipeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +{abstract} setToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +{abstract} fadeToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +wipeToColorHSV(hue: uint8_t, sat: uint8_t, val: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +wipeToColorHex(hex: uint32_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +setToColorSingleHSV(i: uint8_t, hue: uint8_t, sat: uint8_t, val: uint8_t) : void
+    +setToColorSingleHex(i: uint8_t, hex: uint32_t) : void
+    +fadeToColorSingleHSV(i: uint8_t, hue: uint8_t, sat: uint8_t, val: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +fadeToColorSingleHex(i: uint8_t, hex: uint32_t, steps: uint16_t, delay_ms: uint16_t) : void
 }
 
-
-class CueThemeSetting {
-	+cueForBump() : UiSfxCueId {query}
-	+name() : char* {query}
-	+bump() : void
-	#logValue() : void {query}
+class ARGB <template<DATA_PIN, Led_Number, COLOR_ORDER=GRB>> {
+    +ARGB(power_pin: uint8_t = 0xFF)
+    +setup() : void
+    +show() : void
+    +clear() : void
+    +setBrightness(b: uint8_t) : void
+    +setToColor(r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +fadeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +wipeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +setToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +fadeToColorSingle(i: uint8_t, r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +stepDisco() : void
+    +showDisco() : void
+    +stepLoadingCircle(hue: uint8_t) : void
+    +resetLoadingCircle() : void
+    +progressStatusLoadingCircle() : uint8_t
+    -_leds : CRGB[]
+    -_power_pin : uint8_t
+    -_loadingStatusprogress : uint8_t
 }
 
-
-class GestureButton {
-	+GestureButton(uint8_t pin, Callback onSP, Callback onDP, Callback onTP, Callback onHold)
-	-_onDP : Callback
-	-_onHold : Callback
-	-_onSP : Callback
-	-_onTP : Callback
-	-_hold_fired : bool
-	-_pressed : bool
-	-_reading_last : bool
-	+isPressed() : bool {query}
-	+CLICK_GAP_MS : uint16_t
-	+DEBOUNCE_MS : uint16_t
-	+HOLD_MS : uint16_t
-	-_click_count : uint8_t
-	-_pin : uint8_t
-	-_last_change_ms : unsigned long
-	-_last_release_ms : unsigned long
-	-_press_start_ms : unsigned long
-	+Setup() : void
-	+update(unsigned long now) : void
+class RGBLeds <template<r_pin, g_pin, b_pin, LED_COMMON_ANODE=false>> {
+    +RGBLeds()
+    +setup() : void
+    +show() : void
+    +clear() : void
+    +setToColor(r: uint8_t, g: uint8_t, b: uint8_t) : void
+    +fadeToColor(r: uint8_t, g: uint8_t, b: uint8_t, steps: uint16_t, delay_ms: uint16_t) : void
+    +stepDisco() : void
+    +showDisco() : void
+    -_Color : CRGB
+    -_LED_COMMON_ANODE : bool
 }
 
+LEDBase <|-- ARGB
+LEDBase <|-- RGBLeds
+ILedStrip <|-- ARGB
 
-class LinkClick {
-	+name() : char* {query}
-	+color() : uint32_t {query}
-	+DP() : void
-	+Enter() : void
-	+Exit() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
+
+/' ================================================================
+   AUDIO LAYER
+   ================================================================ '/
+
+struct SongNote {
+    +midi : uint8_t
+    +duration_ms : uint16_t
+    +time_ms : uint32_t
 }
 
-
-class Logger {
-	-{static} _print(const char* prefix, const char* fmt, va_list args) : void
-	+{static} debugLog(const char* fmt) : void
-	+{static} error(const char* fmt) : void
-	+{static} log(const char* fmt) : void
-	+{static} warn(const char* fmt) : void
+struct Song {
+    +notes : const SongNote*
+    +count : size_t
+    +name : const char*
 }
-
-
-class Mode3 {
-	+name() : char* {query}
-	+color() : uint32_t {query}
-	+DP() : void
-	+Enter() : void
-	+Exit() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
-}
-
-
-abstract class ModeBase {
-	+~ModeBase()
-	+cueForDP() : UiSfxCueId {query}
-	+cueForSP() : UiSfxCueId {query}
-	+cueForTP() : UiSfxCueId {query}
-	+{abstract} name() : char* {query}
-	+{abstract} color() : uint32_t {query}
-	+DP() : void
-	+Enter() : void
-	+Exit() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
-}
-
-
-class ModeManager {
-	+ModeManager(ModeBase** list, uint8_t count)
-	+current() : ModeBase&
-	-_list : ModeBase**
-	-_count : uint8_t
-	-_index : uint8_t
-	+count() : uint8_t {query}
-	+index() : uint8_t {query}
-	+DP() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
-	+begin() : void
-	-flashColor(uint32_t c) : void
-	+nextMode() : void
-	+setMode(uint8_t index) : void
-}
-
-
-class PartyMode {
-	+cueForDP() : UiSfxCueId {query}
-	+cueForSP() : UiSfxCueId {query}
-	+cueForTP() : UiSfxCueId {query}
-	-_running : bool
-	+isRunning() : bool {query}
-	+name() : char* {query}
-	-{static} DISCO_STEP_MS : static const uint16_t
-	+color() : uint32_t {query}
-	-_last_disco : unsigned long
-	+DP() : void
-	+Enter() : void
-	+Exit() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
-}
-
-
-class RGBLeds <template<uint8_t r_pin, uint8_t g_pin, uint8_t b_pin, bool LED_COMMON_ANODE=false>> {
-	+RGBLeds()
-	-_Color : CRGB
-	-hsvToRgb(uint8_t hue, uint8_t sat, uint8_t val) : CRGB
-	-_LED_COMMON_ANODE : bool
-	+getBrightness() : u_int8_t {query}
-	-_Brightness : uint8_t
-	-{static} hexB(uint32_t h) : uint8_t
-	-{static} hexG(uint32_t h) : uint8_t
-	-{static} hexR(uint32_t h) : uint8_t
-	+Disco_step() : void
-	+Setup() : void
-	+clear() : void
-	+fadeTo(uint8_t r, uint8_t g, uint8_t b, uint16_t steps, uint16_t frame_delay_ms) : void
-	+fadeToHSV(uint8_t hue, uint8_t sat, uint8_t val, uint16_t steps, uint16_t frame_delay_ms) : void
-	+fadeToHex(uint32_t hex_color, uint16_t steps, uint16_t frame_delay_ms) : void
-	+ledSet(uint8_t r, uint8_t g, uint8_t b) : void
-	+ledSetHSV(uint8_t hue, uint8_t sat, uint8_t val) : void
-	+ledSetHex(uint32_t hex_color) : void
-	+setBrightness(uint8_t b) : void
-	+show() : void
-}
-
-
-class SerialCommander {
-	-{static} parseColor(const char* s, uint8_t& r, uint8_t& g, uint8_t& b) : bool
-	-_buf : char[]
-	-{static} BUF_SIZE : static const uint8_t
-	-_len : uint8_t
-	-handle(char* line) : void
-	-{static} toLower(char* s) : void
-	+update() : void
-}
-
-
-abstract class SettingItem {
-	+~SettingItem()
-	+cueForBump() : UiSfxCueId {query}
-	+{abstract} name() : char* {query}
-	+Enter() : void
-	+bump() : void
-	#logValue() : void {query}
-}
-
-
-class Settings {
-	+cueForDP() : UiSfxCueId {query}
-	+cueForSP() : UiSfxCueId {query}
-	+cueForTP() : UiSfxCueId {query}
-	+name() : char* {query}
-	+color() : uint32_t {query}
-	-color_settings : uint32_t
-	+DP() : void
-	+Enter() : void
-	+Exit() : void
-	+SP() : void
-	+Step(unsigned long now) : void
-	+TP() : void
-	-showSelected() : void
-}
-
-
-class SettingsMenu {
-	+SettingsMenu(SettingItem** list, uint8_t count)
-	+at(uint8_t i) : SettingItem&
-	+current() : SettingItem&
-	-_list : SettingItem**
-	-_count : uint8_t
-	-_index : uint8_t
-	+count() : uint8_t {query}
-	+index() : uint8_t {query}
-	+begin() : void
-	+bump() : void
-	+next() : void
-	+previous() : void
-}
-
-
-class SettingsStore {
-	+{static} MAGIC : static const uint16_t
-	+{static} VERSION : static const uint8_t
-	+load() : void
-	+save() : void
-}
-
 
 class speakerController {
-	+speakerController(uint8_t pin)
-	-_playing : bool
-	+isPlaying() : bool {query}
-	-_notes : const SongNote*
-	-_count : size_t
-	-_index : size_t
-	+{static} midiToFreq(uint8_t midi) : uint16_t
-	+pitchToFrequency(uint8_t note) : uint16_t
-	-_start_ms : uint32_t
-	+elapsed() : uint32_t {query}
-	-_pin : uint8_t
-	+Setup() : void
-	+play(const SongNote* notes, size_t count) : void
-	+playFrom(const SongNote* notes, size_t count, uint32_t offset_ms) : void
-	+playNote(uint8_t note, uint32_t duration) : void
-	+playTone(uint16_t frequency, uint32_t duration) : void
-	+step() : void
-	+stop() : void
-	+stopTone() : void
+    +speakerController(pin: uint8_t)
+    +setup() : void
+    +play(notes: const SongNote*, count: size_t) : void
+    +playFrom(notes: const SongNote*, count: size_t, offset_ms: uint32_t) : void
+    +stop() : void
+    +step() : void
+    +isPlaying() : bool
+    +elapsed() : uint32_t
+    +playTone(frequency: uint16_t, duration: uint32_t) : void
+    +stopTone() : void
+    +playNote(note: uint8_t, duration: uint32_t) : void
+    +pitchToFrequency(note: uint8_t) : uint16_t
+    +{static} midiToFreq(midi: uint8_t) : uint16_t
+    -_pin : uint8_t
+    -_notes : const SongNote*
+    -_count : size_t
+    -_index : size_t
+    -_start_ms : uint32_t
+    -_playing : bool
 }
 
-
-class PersistedSettings {
-	+gapAfterMs : uint16_t
-	+gapBeforeMs : uint16_t
-	+magic : uint16_t
-	+brightness : uint8_t
-	+cuePackIndex : uint8_t
-	+muted : uint8_t
-	+version : uint8_t
+class BuzzerPlayer {
+    +BuzzerPlayer(spk: speakerController&)
+    +step() : void
+    +play() : void
+    +play(index: uint8_t) : void
+    +next() : void
+    +previous() : void
+    +select(index: uint8_t) : void
+    +stop() : void
+    +autoNext(on: bool) : void
+    +playCue(id: UiSfxCueId) : void
+    +playCue(name: const char*) : void
+    +setCuePack(name: const char*) : void
+    +setCuePack(index: uint8_t) : void
+    +setCueGap(before_ms: uint16_t, after_ms: uint16_t) : void
+    +setMuted(m: bool) : void
+    +toggleMute() : void
+    +isMuted() : bool
+    +isPlaying() : bool
+    +songName() : const char*
+    +songIndex() : uint8_t
+    +songCount() : uint8_t
+    +cuePackName() : const char*
+    +cuePackIndex() : uint8_t
+    +cueGapBefore() : uint16_t
+    +cueGapAfter() : uint16_t
+    -_spk : speakerController&
+    -_index : uint8_t
+    -_auto_next : bool
+    -_started : bool
+    -_ducking : bool
+    -_song_paused : bool
+    -_song_offset_ms : uint32_t
+    -_pack_index : uint8_t
+    -_cue_muted : bool
+    -_gap_before_ms : uint16_t
+    -_gap_after_ms : uint16_t
 }
 
+speakerController o-- SongNote
+BuzzerPlayer o-- speakerController
+BuzzerPlayer o-- Song
 
-class SongNote {
-	+duration_ms : uint16_t
-	+time_ms : uint32_t
-	+midi : uint8_t
+
+/' ================================================================
+   MODES LAYER
+   ================================================================ '/
+
+abstract class ModeBase {
+    +{abstract} name() : const char*
+    +{abstract} color() : uint32_t
+    +virtual Enter() : void
+    +virtual Exit() : void
+    +virtual Step(now: unsigned long) : void
+    +virtual SP() : void
+    +virtual DP() : void
+    +virtual TP() : void
+    +virtual cueForSP() : UiSfxCueId
+    +virtual cueForDP() : UiSfxCueId
+    +virtual cueForTP() : UiSfxCueId
 }
 
+class PartyMode {
+    +name() : const char*
+    +color() : uint32_t
+    +Enter() : void
+    +Exit() : void
+    +Step(now: unsigned long) : void
+    +SP() : void
+    +DP() : void
+    +TP() : void
+    +cueForSP() : UiSfxCueId
+    +cueForDP() : UiSfxCueId
+    +cueForTP() : UiSfxCueId
+    +isRunning() : bool
+    -_running : bool
+    -_last_disco : unsigned long
+    -{static} DISCO_STEP_MS : uint16_t
+}
 
+class LinkClick {
+    +name() : const char*
+    +color() : uint32_t
+    +Enter() : void
+    +Exit() : void
+    +Step(now: unsigned long) : void
+    +SP() : void
+    +DP() : void
+    +TP() : void
+}
 
+class Mode3 {
+    +name() : const char*
+    +color() : uint32_t
+    +Enter() : void
+    +Exit() : void
+    +Step(now: unsigned long) : void
+    +SP() : void
+    +DP() : void
+    +TP() : void
+}
 
+class Settings {
+    +name() : const char*
+    +color() : uint32_t
+    +Enter() : void
+    +Exit() : void
+    +Step(now: unsigned long) : void
+    +SP() : void
+    +DP() : void
+    +TP() : void
+    +cueForSP() : UiSfxCueId
+    +cueForDP() : UiSfxCueId
+    +cueForTP() : UiSfxCueId
+    -color_settings : uint32_t
+    -showSelected() : void
+}
 
-/' Inheritance relationships '/
-
-ModeBase <|-- LinkClick
-
-
-ModeBase <|-- Mode3
-
+class ModeManager {
+    +ModeManager(list: ModeBase**, count: uint8_t)
+    +begin() : void
+    +setMode(index: uint8_t) : void
+    +nextMode() : void
+    +SP() : void
+    +DP() : void
+    +TP() : void
+    +Step(now: unsigned long) : void
+    +current() : ModeBase&
+    +index() : uint8_t
+    +count() : uint8_t
+    -_list : ModeBase**
+    -_count : uint8_t
+    -_index : uint8_t
+    -flashColor(c: uint32_t) : void
+}
 
 ModeBase <|-- PartyMode
-
-
+ModeBase <|-- LinkClick
+ModeBase <|-- Mode3
 ModeBase <|-- Settings
-
-
-SettingItem <|-- BrightnessSetting
-
-
-SettingItem <|-- CueMuteSetting
-
-
-SettingItem <|-- CueThemeSetting
-
-
-
-
-
-/' Aggregation relationships '/
-
 ModeManager o-- ModeBase
 
 
+/' ================================================================
+   SETTINGS LAYER
+   ================================================================ '/
+
+abstract class SettingItem {
+    +{abstract} name() : const char*
+    +virtual Enter() : void
+    +virtual bump() : void
+    +virtual cueForBump() : UiSfxCueId
+    #virtual logValue() : void
+}
+
+class BrightnessSetting {
+    +name() : const char*
+    +bump() : void
+    #logValue() : void
+    -{static} STEP : uint8_t
+}
+
+class CueMuteSetting {
+    +name() : const char*
+    +bump() : void
+    #logValue() : void
+}
+
+class CueThemeSetting {
+    +name() : const char*
+    +bump() : void
+    +cueForBump() : UiSfxCueId
+    #logValue() : void
+}
+
+class SettingsMenu {
+    +SettingsMenu(list: SettingItem**, count: uint8_t)
+    +begin() : void
+    +next() : void
+    +previous() : void
+    +bump() : void
+    +current() : SettingItem&
+    +at(i: uint8_t) : SettingItem&
+    +index() : uint8_t
+    +count() : uint8_t
+    -_list : SettingItem**
+    -_count : uint8_t
+    -_index : uint8_t
+}
+
+SettingItem <|-- BrightnessSetting
+SettingItem <|-- CueMuteSetting
+SettingItem <|-- CueThemeSetting
 SettingsMenu o-- SettingItem
 
 
-speakerController o-- SongNote
+/' ================================================================
+   STORAGE
+   ================================================================ '/
+
+struct PersistedSettings {
+    +magic : uint16_t
+    +version : uint8_t
+    +cuePackIndex : uint8_t
+    +gapBeforeMs : uint16_t
+    +gapAfterMs : uint16_t
+    +muted : uint8_t
+    +brightness : uint8_t
+}
+
+class SettingsStore {
+    +{static} MAGIC : uint16_t
+    +{static} VERSION : uint8_t
+    +load() : void
+    +save() : void
+}
+
+SettingsStore ..> PersistedSettings
 
 
+/' ================================================================
+   INPUT
+   ================================================================ '/
+
+class GestureButton {
+    +GestureButton(pin: uint8_t, onSP: Callback, onDP: Callback, onTP: Callback, onHold: Callback)
+    +setup() : void
+    +update(now: unsigned long) : void
+    +isPressed() : bool
+    +DEBOUNCE_MS : uint16_t
+    +CLICK_GAP_MS : uint16_t
+    +HOLD_MS : uint16_t
+    -_pin : uint8_t
+    -_onSP : Callback
+    -_onDP : Callback
+    -_onTP : Callback
+    -_onHold : Callback
+    -_pressed : bool
+    -_reading_last : bool
+    -_hold_fired : bool
+    -_click_count : uint8_t
+    -_last_change_ms : unsigned long
+    -_press_start_ms : unsigned long
+    -_last_release_ms : unsigned long
+}
 
 
+/' ================================================================
+   LOGGER
+   ================================================================ '/
+
+class Logger {
+    +{static} log(fmt: const char*) : void
+    +{static} debugLog(fmt: const char*) : void
+    +{static} warn(fmt: const char*) : void
+    +{static} error(fmt: const char*) : void
+    -{static} _print(prefix: const char*, fmt: const char*, args: va_list) : void
+}
 
 
-/' Nested objects '/
+/' ================================================================
+   SERIAL
+   ================================================================ '/
 
-
+class SerialCommander {
+    +update() : void
+    -{static} BUF_SIZE : uint8_t
+    -_buf : char[]
+    -_len : uint8_t
+    -handle(line: char*) : void
+    -{static} toLower(s: char*) : void
+    -{static} parseColor(s: const char*, r: uint8_t&, g: uint8_t&, b: uint8_t&) : bool
+}
 
 @enduml

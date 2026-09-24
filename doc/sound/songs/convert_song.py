@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 convert_song.py — turn a VisiPiano/MIDI-JSON export into a SongNote[] C++ header
-for Discobox's SongPlayer (include/Buzzer/SongsPlayer/SongPlayer.h).
+for Discobox's SongPlayer (lib/SongPlayer/SongPlayer.h).
 
 USAGE
     # single file
@@ -83,7 +83,7 @@ def write_header(notes, array_name: str, output_path: str, source_name: str):
         f"// Auto-generated from {source_name} by convert_song.py — do not edit by hand.",
         f"#ifndef {guard}",
         f"#define {guard}",
-        '#include "Buzzer/SongsPlayer/SongPlayer.h"',
+        '#include <SongPlayer.h>',
         "",
         f"// {len(notes)} notes, total duration ~{total_ms / 1000:.1f}s",
         f"const SongNote {array_name}[] = {{",

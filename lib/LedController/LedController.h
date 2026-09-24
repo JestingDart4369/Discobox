@@ -30,6 +30,7 @@ namespace LedUtil {
 
 class LEDBase {
 public:
+    virtual ~LEDBase() {}
     // Base class for LED controllers
         virtual void setup() = 0;  // Pure virtual function for setup
         virtual void show() = 0;   // Pure virtual function to update the LEDs
@@ -158,7 +159,7 @@ public:
 
 // Setup function
     /** @brief Constructs the chain controller. @param power_pin Optional power-enable pin (drive HIGH to enable strip power). Pass 0xFF to ignore. */
-    ARGB(uint8_t power_pin = 0xFF) : _power_pin(power_pin), _brightness(255) {}
+    ARGB(uint8_t power_pin = 0xFF) : _power_pin(power_pin) {}
     
     /** @brief Hardware init — registers the LED chain with FastLED and optionally enables the power pin. Call once from setup(). */
     void setup() override {

@@ -24,7 +24,7 @@
   A running song is paused during a cue and resumes afterwards.
 */
 
-#include "Buzzer/SongsPlayer/SongPlayer.h"
+#include <SongPlayer.h>
 
 // hover — Fine-pointer discovery without commitment.
 const SongNote UiSfx_hover[] = { { 78, 90, 0u } };

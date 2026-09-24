@@ -248,7 +248,7 @@ private:
     else if (strncmp(line, "ring ", 5) == 0) {
       uint8_t r, g, b;
       if (parseColor(line + 5, r, g, b)) {
-        RingOFLeds.All_Set(r, g, b);
+        RingOFLeds.setToColor(r, g, b);
         RingOFLeds.show();
         Logger::log("[serial] ring -> %d %d %d", r, g, b);
       } else Logger::warn("usage: ring 255 0 0  or  ring #ff0000");
@@ -258,7 +258,7 @@ private:
       const char* rest = strchr(line + 4, ' ');  // then the color
       uint8_t r, g, b;
       if (n >= 1 && n <= 16 && rest && parseColor(rest + 1, r, g, b)) {
-        RingOFLeds.Set_Single((uint8_t)(n - 1), r, g, b);
+        RingOFLeds.setToColorSingle((uint8_t)(n - 1), r, g, b);
         RingOFLeds.show();
         Logger::log("[serial] led %d -> %d %d %d", n, r, g, b);
       } else Logger::warn("usage: led 3 255 0 0  or  led 3 #ff0000  (led 1..16)");
@@ -266,7 +266,7 @@ private:
     else if (strncmp(line, "btn ", 4) == 0) {
       uint8_t r, g, b;
       if (parseColor(line + 4, r, g, b)) {
-        RGBButton.ledSet(r, g, b);
+        RGBButton.setToColor(r, g, b);
         Logger::log("[serial] btn -> %d %d %d", r, g, b);
       } else Logger::warn("usage: btn 0 0 255  or  btn #0000ff");
     }
@@ -280,22 +280,22 @@ private:
       } else Logger::warn("bright must be 0..255");
     }
     else if (strcmp(line, "disco") == 0) {
-      RingOFLeds.Disco_step();
+      RingOFLeds.stepDisco();
       RingOFLeds.show();
-      RGBButton.Disco_step();
+      RGBButton.stepDisco();
     }
     else if (strncmp(line, "fade ", 5) == 0) {
       uint8_t r, g, b;
       if (parseColor(line + 5, r, g, b)) {
         Logger::log("[serial] fading ring...");
-        RingOFLeds.All_FadeTo(r, g, b);       // note: blocks ~0.6s
+        RingOFLeds.fadeToColor(r, g, b);       // note: blocks ~0.6s
       } else Logger::warn("usage: fade 255 136 0  or  fade #ff8800");
     }
     else if (strncmp(line, "wipe ", 5) == 0) {
       uint8_t r, g, b;
       if (parseColor(line + 5, r, g, b)) {
         Logger::log("[serial] wiping ring...");
-        RingOFLeds.WipeTo(r, g, b);           // note: blocks ~4s
+        RingOFLeds.wipeToColor(r, g, b);           // note: blocks ~4s
       } else Logger::warn("usage: wipe 0 255 255  or  wipe #00ffff");
     }
     else if (strcmp(line, "clear") == 0) {
