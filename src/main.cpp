@@ -15,6 +15,7 @@
 #include <LedController.h>
 #include <Logger.h>
 #include <GestureButton.h>
+#include <WS2805.h>
 //Audio
 #include <SongPlayer.h>
 
@@ -31,6 +32,7 @@
   //  Setup Led
     ARGB<D4, 16> RingOFLeds;
     RGBLeds<D3, D5, D6> RGBButton;
+    WS2805<D7> Strip;
 
     //brightness level 255/15 = 17 steps for a full circle on the ring
     uint8_t brightness = 15;
@@ -104,7 +106,10 @@ void setup() {
       RingOFLeds.setup();
       RingOFLeds.setToColor(255,0,0);
       RingOFLeds.show();
-
+    //led-strip
+      Strip.setup();
+      Strip.setToColor(0,0,0);
+      Strip.show();
     //speaker:
       speaker.setup();
 
