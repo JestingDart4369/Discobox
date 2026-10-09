@@ -37,8 +37,9 @@
   no sound, no pausing the song. Songs (play/next/etc.) are unaffected
   either way, so the party keeps going while you mute the clicks.
 
-  ADD A NEW SONG: put the header in Buzzer/SongsPlayer/Songs/, include
-  it below, add one line to SONGLIST. Done.
+  ADD A NEW SONG: put the header in Buzzer/Songs/, include it below
+  (guarded with __has_include if it should stay private), add one line to
+  SONGLIST. Done.
 
   IMPORTANT: include this in main.cpp AFTER the `speaker` object is
   defined — the global Buzzer instance uses it.
@@ -47,15 +48,43 @@
 #include <SongPlayer.h>
 #include <UiSfx_Cues.h>
 
-//songs
-  #include "Buzzer/Songs/BackInTime_song.h"  // BackInTime_Notes / BackInTime_notes_count
-  #include "Buzzer/Songs/Solas_Melody.h"     // Solas_Melody / Solas_Melody_count
-  #include "Buzzer/Songs/megaovenia_song.h"   // Megalovenia / Megalovenia_count
+// songs
+// ExampleSong_song.h is tracked in git and always present. Every other song
+// header in Buzzer/Songs/ is gitignored (copyrighted melodies) and optional:
+// __has_include skips whichever ones are missing, so a fresh clone still builds.
+#include "Buzzer/Songs/ExampleSong_song.h"   // Example_Scale / Example_Scale_notes_count
+#if __has_include("Buzzer/Songs/BackInTime_song.h")
+  #include "Buzzer/Songs/BackInTime_song.h"
+  #define HAS_SONG_BACKINTIME
+#endif
+#if __has_include("Buzzer/Songs/Solas_Melody.h")
+  #include "Buzzer/Songs/Solas_Melody.h"
+  #define HAS_SONG_SOLAS
+#endif
+#if __has_include("Buzzer/Songs/megaovenia_song.h")
+  #include "Buzzer/Songs/megaovenia_song.h"
+  #define HAS_SONG_MEGALOVENIA
+#endif
+#if __has_include("Buzzer/Songs/supermario_song.h")
   #include "Buzzer/Songs/supermario_song.h"
+  #define HAS_SONG_SUPERMARIO
+#endif
+#if __has_include("Buzzer/Songs/sims2_song.h")
   #include "Buzzer/Songs/sims2_song.h"
+  #define HAS_SONG_SIMS2
+#endif
+#if __has_include("Buzzer/Songs/minecraft_sweden_song.h")
   #include "Buzzer/Songs/minecraft_sweden_song.h"
+  #define HAS_SONG_MINECRAFT
+#endif
+#if __has_include("Buzzer/Songs/Pokemon_Red_Opening_song.h")
   #include "Buzzer/Songs/Pokemon_Red_Opening_song.h"
+  #define HAS_SONG_POKEMON
+#endif
+#if __has_include("Buzzer/Songs/DancingQueen_song.h")
   #include "Buzzer/Songs/DancingQueen_song.h"
+  #define HAS_SONG_DANCINGQUEEN
+#endif
 
 /* ----------------------------------------------------------------
    The song list
@@ -70,14 +99,31 @@ struct Song {
 };
 
 const Song SONGLIST[] = {
+  { Example_Scale, Example_Scale_notes_count, "Example Scale" },
+#ifdef HAS_SONG_BACKINTIME
   { BackInTime_Notes, BackInTime_notes_count, "Back In Time" },
+#endif
+#ifdef HAS_SONG_SOLAS
   { Solas_Melody,     Solas_Melody_count,     "Solas"        },
-  {DancingQueen,DancingQueen_notes_count, "Dancing Queen"},
-  { Megalovenia,      Megalovenia_notes_count,      "Megalovenia"  },
-  { Supermario,      Supermario_notes_count,      "Super Mario"  },
-  { Sims2,      Sims2_notes_count,      "Sims 2"  },
-  { Minecraft_sweden,      Minecraft_sweden_notes_count,      "Minecraft Sweden"  },
-  { Pokemon_Red_Opening,      Pokemon_Red_Opening_notes_count,      "Pokemon Red Opening"  }
+#endif
+#ifdef HAS_SONG_DANCINGQUEEN
+  { DancingQueen,     DancingQueen_notes_count, "Dancing Queen" },
+#endif
+#ifdef HAS_SONG_MEGALOVENIA
+  { Megalovenia,      Megalovenia_notes_count,  "Megalovenia"  },
+#endif
+#ifdef HAS_SONG_SUPERMARIO
+  { Supermario,       Supermario_notes_count,   "Super Mario"  },
+#endif
+#ifdef HAS_SONG_SIMS2
+  { Sims2,            Sims2_notes_count,        "Sims 2"       },
+#endif
+#ifdef HAS_SONG_MINECRAFT
+  { Minecraft_sweden, Minecraft_sweden_notes_count, "Minecraft Sweden" },
+#endif
+#ifdef HAS_SONG_POKEMON
+  { Pokemon_Red_Opening, Pokemon_Red_Opening_notes_count, "Pokemon Red Opening" },
+#endif
 };
 const uint8_t SONGLIST_COUNT = sizeof(SONGLIST) / sizeof(SONGLIST[0]);
 

@@ -7,3 +7,10 @@ Discobox.code-workspace
 doc/sound/uisfx-origin
 doc/sound/uisfx-sounds/**/*.ogg
 Old/*
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Copyrighted melodies — keep local only (ExampleSong_song.h stays tracked)
+include/Buzzer/Songs/*
+!include/Buzzer/Songs/ExampleSong_song.h
