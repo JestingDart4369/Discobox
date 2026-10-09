@@ -13,10 +13,12 @@ was committed together on 2026-10-09 (`0fe7ce6`), so `git log` shows that day.
 ## 2026-10-09
 
 Commits: `9138a0c`, `4d7fca2`, `6014466` (repo cleanup); `0fe7ce6` (the work of 2026-10-02).
-- Copyrighted songs removed from the repo, example song added, `.gitignore`, MIT license, README (`9138a0c`).
-- Removed `doc/Functionality.md` and `.DS_Store` (`4d7fca2`, `6014466`).
-- README: "AI usage" section.
-- This journal (`JOURNAL.md`) added.
+- Prepared the repository for publishing: all copyrighted song files were removed and are now git-ignored, one example song (`ExampleSong_song.h`) stays so a fresh clone still builds, and the player skips song files that do not exist locally (`9138a0c`).
+- Added the MIT license, a README with features, pin table, build commands, project layout and sound credits, and an updated `.gitignore` (`9138a0c`).
+- Removed the empty `doc/Functionality.md` and the tracked `.DS_Store` (`4d7fca2`, `6014466`).
+- README got an "AI usage" section, and this journal (`JOURNAL.md`) was added to document the history of the project.
+
+![WS2805 LED strip running a colour test](doc/journal/strip-rainbow-test.png)
 
 ## 2026-10-02
 
@@ -45,6 +47,10 @@ Committed in `0fe7ce6`.
 - Architecture diagram: test layer added, `DFPlayer.setVolume()` reference fixed. Wiring diagram updated for the strip.
 - `CONTEXT.md` summary file for starting new chats.
 
+**Wiring plan used during the session** (planned wiring diagram v1.2; at that time the strip data pin was still marked "TBD" and the strip was listed as SK6812, the real strip is a WS2805):
+
+![Discobox electrical wiring plan v1.2](doc/journal/wiring-diagram.png)
+
 **Open issues**
 - The first IC (first 3 LEDs) flickers and sometimes does not turn off; likely the 3.3 V data level at the first IC. Planned fix: a 74AHCT125 / 74HCT125 level shifter.
 - The last IC on the strip does not always respond.
@@ -57,6 +63,8 @@ Commits: `11e7e7f`, `992c0de`, `9fece36`.
 - Volume setting added to the settings menu and to EEPROM storage.
 - Wiring diagram (`Discobox_Wiring.puml`) added, architecture diagram updated.
 
+![Test bench with the new LED strip, Arduino and parts](doc/journal/strip-test-bench.jpg)
+
 ## 2026-09-23
 
 Commit: `6492b30`.
@@ -64,18 +72,31 @@ Commit: `6492b30`.
 - Modes, settings, storage, LED controller, buzzer player and serial handler reworked.
 - First class diagram (`Discobox_Architecture.puml`).
 
+![Test bench with the new LED strip, Arduino and parts](doc/journal/strip-test-bench.jpg)
+
 ## 2026-08-21
 
 Commit: `50e44f4`.
 - Settings management refactored (`SettingItem` / `SettingsMenu`).
 - Power-resistant settings storage in EEPROM (theme, gap, mute, brightness).
 
+![Breadboard prototype with Arduino, button LED and speaker](doc/journal/breadboard-speaker.jpg)
+
 ## 2026-08-14
 
 Commits: `3e59679`, `61dfd0a`.
-- Buzzer completed: songs, UI sound cues, theme packs.
+- Buzzer completed (`3e59679`): non-blocking song player with a song list, UI sound cues in several theme packs (`UiSfx_Cues.h`), and ducking of a running song while a cue plays.
+- Around it: gesture button handler, mode system (`Modes.h`), serial command console (`Serial_Handler.h`), logger and the LED controller for the ring were added to the project.
+- `61dfd0a`: `.gitignore` adjusted.
+
+![Breadboard prototype with Arduino, button LED and speaker](doc/journal/breadboard-speaker.jpg)
+
+![Breadboard wiring close-up](doc/journal/breadboard-closeup.jpg)
 
 ## 2026-07-29
 
 Commits: `3db993e`, `01a583f`.
-- Git repository created, project skeleton.
+- Git repository created (`3db993e`) with the PlatformIO project skeleton, `.gitignore`, VS Code extension recommendations and the Kenney UI sound pack in `doc/sound/` as raw material for the UI sound cues.
+- `01a583f`: small `.gitignore` fix.
+
+![Breadboard wiring close-up of the first prototype](doc/journal/breadboard-closeup.jpg)
