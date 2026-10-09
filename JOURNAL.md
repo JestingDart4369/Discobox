@@ -13,7 +13,7 @@ Note: i havent really photographed my progress so far, so some of the pictures i
 
 ![WS2805 LED strip running a colour test](doc/journal/strip-rainbow-test.png)
 
-**Total time spent: TODO hours**
+**Total time spent: 2 hours**
 
 # October 2: Strip bugs, random() and the DFPlayer
 
@@ -37,7 +37,7 @@ i bought the ws 2806 strip because i wanted rgb also a white for a strobe efecz 
 
 ![Test bench with the new LED strip, Arduino and parts](doc/journal/strip-test-bench.jpg)
 
-**Total time spent: TODO hours**
+**Total time spent: 15 hours**
 
 # August 14: Buzzer, button gestures and serial console
 
