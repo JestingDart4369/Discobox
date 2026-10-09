@@ -1,0 +1,22 @@
+Item,Qty,Price_CHF,Link,Notes
+Arduino Uno R4 WiFi,1,23.7,,Main controller (Renesas RA4M1)
+"16 mm RGB push button (PM161H-10E, 5 V)",1,29.9,,"Momentary switch + RGB LED, internal LED resistors"
+DFRobot 16x WS2812 RGB LED ring (DFR0888-12),1,21.9,,"5 V, data on D4 via 330 Ohm"
+"BTF-Lighting WS2805 RGBCCT LED strip, 3 m, 60 LED/m, 12 V",1,17.39,https://www.btf-lighting.com/en-intl/products/ws2805-pixels-led-strip-light-rgbcct-5in1-60leds-m-addressable-dual-signal-3000k-6500k,"60 ICs (3 LEDs per IC), data on D11"
+DFPlayer Mini MP3 module,1,5.65,https://www.amazon.de/dp/B0DH2GJXMT,"Serial1 (D0/D1), 1 kOhm in series on its RX"
+PAM8403 stereo amplifier,1,8.45,https://www.amazon.de/dp/B09PL7QYTD,"Class D, 5 V"
+Visaton FRS 8 4 Ohm full-range speaker,2,8.45,https://www.amazon.de/dp/B003A6A9IY,Price: line total from the cost sheet
+12 V 8 A power supply (JOYLIT),1,16.0,https://www.amazon.de/dp/B06ZXW91J7,"Powers the strip and, via the buck converter, everything else"
+"12 V to 5 V buck converter, 5 A (SUPERNIGHT)",1,9.4,https://www.amazon.de/dp/B079M9CHV9,"5 V rail for Arduino, ring, DFPlayer, amp"
+1-channel 5 V relay module,1,3.75,https://www.amazon.de/dp/B01CQ10YXI,In the diagram; not used by the firmware yet
+Piezo buzzer / small tone() speaker,1,2.0,,D9
+8 GB microSD card,1,5.65,https://www.amazon.de/dp/B008RDCCFS,"FAT32, files as /02/001.mp3 ..."
+Inline fuse holder with fuses,1,5.0,https://www.amazon.de/dp/B0838YMK8F,Planned price from shopping list
+1000 uF electrolytic capacitor,1,1.0,https://www.amazon.de/dp/B0B395BFSW,Planned price from shopping list
+DC barrel jack to screw-terminal adapter (conecto),1,,https://www.amazon.de/dp/B07D62QFWF,Price not recorded
+Mains extension cable 5 m (Swiss plug type 13),1,15.0,https://www.galaxus.ch/en/s4/product/steffen-verlaengerungskabel-5-m-type-13-extension-cables-10912446,Swiss extension cable
+Perfboard,1,3.0,,
+Wiring / jumper wires,1,5.0,,
+"Assorted resistors (330 Ohm, 1 kOhm, ...)",1,2.0,,
+74AHCT125 level shifter (3.3 V to 5 V),1,,,"Recommended for the strip data line, not bought yet"
+TOTAL (priced items only),,183.24,,Items without a price are not included

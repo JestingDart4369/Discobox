@@ -1,102 +1,56 @@
-# Discobox – Development Journal
-
-Repository: <https://github.com/JestingDart4369/Discobox>
-
-Git-based devlog: every entry is dated and, where it was committed, links to the commit
-hash (`git log --date=short` shows the same history). Newest entries first.
-
-Dates in the 2026-10 entries come from the working session clock; the code of 2026-10-02
-was committed together on 2026-10-09 (`0fe7ce6`), so `git log` shows that day.
-
+---
+title: "Discobox"
+author: "JestingDart4369"
+description: "Button-controlled party box on an Arduino Uno R4 WiFi with LED ring, WS2805 LED strip, piezo buzzer and DFPlayer Mini MP3 playback"
+created_at: "2026-07-29"
 ---
 
-## 2026-10-09
+# October 9: Forge compliance and documentation
 
-Commits: `9138a0c`, `4d7fca2`, `6014466` (repo cleanup); `0fe7ce6` (the work of 2026-10-02).
-- Prepared the repository for publishing: all copyrighted song files were removed and are now git-ignored, one example song (`ExampleSong_song.h`) stays so a fresh clone still builds, and the player skips song files that do not exist locally (`9138a0c`).
-- Added the MIT license, a README with features, pin table, build commands, project layout and sound credits, and an updated `.gitignore` (`9138a0c`).
-- Removed the empty `doc/Functionality.md` and the tracked `.DS_Store` (`4d7fca2`, `6014466`).
-- README got an "AI usage" section, and this journal (`JOURNAL.md`) was added to document the history of the project.
+today im spending some time for th ecomplience for the forge stuff and writing documentation
+
+Note: i havent really photographed my progress so far, so some of the pictures in the older entries are only similar pictures from the same setup. Going forward i will be more compliant and take photos of every step.
 
 ![WS2805 LED strip running a colour test](doc/journal/strip-rainbow-test.png)
 
-## 2026-10-02
+**Total time spent: TODO hours**
 
-Committed in `0fe7ce6`.
+# October 2: Strip bugs, random() and the DFPlayer
 
-**DFPlayer**
-- Global instance renamed `Audio` -> `DFPlayer` (header, `main.cpp`, settings).
-- `#ifdef DFPLAYERCONTROLLER_H` guards in `Settings_Items.h` / `Settings_Store.h`, so they compile without the DFPlayer library.
-- Wiring comment in `DFPlayerController.h` corrected (Serial1: D0 = RX, D1 = TX).
-- Party mode now plays the DFPlayer playlist from SD folder `02`; SP starts/stops, DP/TP skip tracks. The piezo no longer plays songs in Party (it still plays the UI cues).
+the stirp had shifted index and the coulours were lal wrong and the thing was laging like krasy first i thought that somthing was wrong with the cdode whitch is part fo the answer but not al most of the code is right but some parts not also i had a way to high resitor wierd in whitch was bottelneckink the arduino i looked in the code an found out that radom was the problem by giing through and addin a mesurement output to the cli the dfplayer wasnt working also because i conected it wrong i hat rx to rx an tx to tx when it should be rt to tx and tx to rx beginers luk i think in that weak because holiday break started and stuff i worked like 25 h of witch 5 on frieday and after that some to fro eror finding and stuff
 
-**WS2805 LED strip**
-- Pixel count corrected: the BTF 12 V strip has 20 ICs/m with 3 LEDs per IC, so 3 m = 60 ICs (`WS2805<60>`), not 180.
-- Driver rewritten to the Worldsemi datasheet: SPI at 3.0 MHz, 4 SPI bits per data bit (`0` = `1000`, `1` = `1100`), data order R, G, B, W1, W2, reset gap of at least 280 us (130 zero bytes, about 347 us).
-- Added `WS2805_INDEX_SHIFT` (off-by-one between buffer index and physical IC), `WS2805_SPI_HZ`, `WS2805_CHUNK_BYTES`.
-- Arduino `random()` took about 95 ms per call on the R4 (5.7 s per disco frame). Replaced with a small xorshift generator in the strip class; disco and flicker are fast now.
-- Findings: the strip needs a data input of at least about 3.5 V, the Uno R4 outputs 3.3 V; a series resistor of 3 kOhm distorted the signal and was removed; BIN (blue wire) is tied to DAT.
+![Wiring plan I used for this session](doc/journal/wiring-diagram.png)
 
-**Serial console**
-- New `audio` commands: play folder/track, loop, pause, resume, next, prev, stop, volume, volume up/down, status; `status` shows the audio state; `help audio`.
-- New `strip` commands: colour, `clear`, `ww`, `cw`, `cct`, `hsv`, `bright`, `fade`, `wipe`, `led`, `fadeic`, `ic`, `flicker`, `walk`, `disco`, `bench` (timing).
+**Total time spent: 25 hours**
 
-**Tests, build and docs**
-- Native unit tests (Unity, `pio test -e native`) with Arduino and DFPlayer mocks: 8 GestureButton, 30 DFPlayerController, 12 SongPlayer tests.
-- `platformio.ini`: `build_src_filter = -<*>` for the native env (no FastLED / board headers on the PC), `default_envs = uno_r4_wifi` so `pio run` / upload no longer builds the test env.
-- Architecture diagram: test layer added, `DFPlayer.setVolume()` reference fixed. Wiring diagram updated for the strip.
-- `CONTEXT.md` summary file for starting new chats.
+# September 24: Test bench with the parts
 
-**Wiring plan used during the session** (planned wiring diagram v1.2; at that time the strip data pin was still marked "TBD" and the strip was listed as SK6812, the real strip is a WS2805):
-
-![Discobox electrical wiring plan v1.2](doc/journal/wiring-diagram.png)
-
-**Open issues**
-- The first IC (first 3 LEDs) flickers and sometimes does not turn off; likely the 3.3 V data level at the first IC. Planned fix: a 74AHCT125 / 74HCT125 level shifter.
-- The last IC on the strip does not always respond.
-
-## 2026-09-24
-
-Commits: `11e7e7f`, `992c0de`, `9fece36`.
-- Reusable code moved into `lib/` as header-only libraries (GestureButton, Logger, SongPlayer, LedController, UiSfx).
-- DFPlayerController and the first WS2805 driver added; `main.cpp` set up for the LED strip.
-- Volume setting added to the settings menu and to EEPROM storage.
-- Wiring diagram (`Discobox_Wiring.puml`) added, architecture diagram updated.
+in the bench photo it is the day i got many of the parts the arduino and the led striop are conected in it to the converter and the psu and the arduino to the converter (5v part) also i had the button wired up and started wireung zp the speaker oart i think in that weak i worke for 15 h 10 h in the weak just here and there and 5 h straight for on friday afternoon
 
 ![Test bench with the new LED strip, Arduino and parts](doc/journal/strip-test-bench.jpg)
 
-## 2026-09-23
+**Total time spent: 15 hours**
 
-Commit: `6492b30`.
-- Main project prepared for the new LED strip.
-- Modes, settings, storage, LED controller, buzzer player and serial handler reworked.
-- First class diagram (`Discobox_Architecture.puml`).
+# September 23: Buying the strip and reworking the code
+
+i bought the ws 2806 strip because i wanted rgb also a white for a strobe efecz also i chose an strip that was 12 v becaue cheeper and 3m becsause i plan to install t in my 2 bathrom thats why also its ip rated strip i had to rework the code3 firstly i had ai generate the handker for it because i didnt kmow how and the libary fastled i. was using didnt have souport for that i also added oop programing because i learned about it and som things the ked stri  keps with the led ring and so on
 
 ![Test bench with the new LED strip, Arduino and parts](doc/journal/strip-test-bench.jpg)
 
-## 2026-08-21
+**Total time spent: TODO hours**
 
-Commit: `50e44f4`.
-- Settings management refactored (`SettingItem` / `SettingsMenu`).
-- Power-resistant settings storage in EEPROM (theme, gap, mute, brightness).
+# August 14: Buzzer, button gestures and serial console
 
-![Breadboard prototype with Arduino, button LED and speaker](doc/journal/breadboard-speaker.jpg)
-
-## 2026-08-14
-
-Commits: `3e59679`, `61dfd0a`.
-- Buzzer completed (`3e59679`): non-blocking song player with a song list, UI sound cues in several theme packs (`UiSfx_Cues.h`), and ducking of a running song while a cue plays.
-- Around it: gesture button handler, mode system (`Modes.h`), serial command console (`Serial_Handler.h`), logger and the LED controller for the ring were added to the project.
-- `61dfd0a`: `.gitignore` adjusted.
-
-![Breadboard prototype with Arduino, button LED and speaker](doc/journal/breadboard-speaker.jpg)
+the buzzer gave me a bit of a hadkae becaus ei couldnt realy play somthng i found a file from the makers that was about playing sound (ardduino docs) but i dont realy knwo wher but transfering a file to that to be ülayed most music has multipple sounds playing at the same time i nedded music whitch only has 1 track playing so it would soudn good so this wax also realy hard  also the gestures it tellls the button presses apart by time betwen presse it tokk me a bit of time to rap my head around that i added a serial consol to be fatsser at debuging and also testing it  i worked maybe 20 h 5h at my grandma 10 h at home and also some time on my school path but idk how long there and when but havent comited every singel change some of the time was also just admin stuff
 
 ![Breadboard wiring close-up](doc/journal/breadboard-closeup.jpg)
 
-## 2026-07-29
+**Total time spent: 20 hours**
 
-Commits: `3db993e`, `01a583f`.
-- Git repository created (`3db993e`) with the PlatformIO project skeleton, `.gitignore`, VS Code extension recommendations and the Kenney UI sound pack in `doc/sound/` as raw material for the UI sound cues.
-- `01a583f`: small `.gitignore` fix.
+# July 29: Why I started this project
+
+a firend of my gave me the idea why the uno r4 i had it on hand  ther first bread board had a button 12 argb led ring for df robot  took for research i would guess 12 h Buzzer it should be not to loaded with boutons also from the ipods ore headphonesyou already know the gestures i use for pla stop forward skip and backward
 
 ![Breadboard wiring close-up of the first prototype](doc/journal/breadboard-closeup.jpg)
+
+**Total time spent: 12 hours**
