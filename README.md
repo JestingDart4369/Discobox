@@ -66,6 +66,10 @@ To add your own song, convert a MIDI-style export with [convert_song.py](doc/sou
 
 MIT, see [LICENSE](LICENSE). The bundled sound packs keep their own CC0 licenses (see above).
 
-## Disclaimer
+## AI usage
 
-AI (Claude) was used for the documentation, for code corrections, and for most administrative tasks in this project.
+This project was developed with the help of AI (Claude by Anthropic).
+
+* Documentation: README, code comments and diagrams
+* Corrections: reviewing code, fixing bugs and writing the unit tests
+* Admin tasks: repository cleanup, licensing, `.gitignore` and git history
