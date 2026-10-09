@@ -19,7 +19,7 @@ package "Hardware" #EEF2FF {
     [Speaker\n(D9)] as HW_SPK
     [Ring LEDs\n(D4, 16×WS2812)] as HW_RING
     [RGB Button LED\n(D3/D5/D6)] as HW_RGB
-    [WS2805 Strip\n(D7, SPI)] as HW_STRIP
+    [WS2805 Strip 12V\n60 ICs / 180 LED (D11 MOSI)\nBIN tied to DIN] as HW_STRIP
     [EEPROM] as HW_EEPROM
 }
 
@@ -34,7 +34,7 @@ package "Input" #E8F5E9 {
 package "LED Objects" #E3F2FD {
     [ARGB<D4,16>\nRingOFLeds] as OBJ_RING
     [RGBLeds<D3,D5,D6>\nRGBButton] as OBJ_RGB
-    [WS2805<D7>\nStrip] as OBJ_STRIP
+    [WS2805<60>\nStrip] as OBJ_STRIP
 }
 
 package "Audio Objects" #FFF3E0 {

@@ -244,6 +244,58 @@ private:
       else Logger::warn("unknown buzzer flag '%s' — type 'buzzer'", a);
     }
 
+    // --- audio (DFPlayer Mini MP3) ---
+    else if (strncmp(line, "audio", 5) == 0) {
+      const char* a = line + 5;
+      while (*a == ' ') a++;
+
+      if (*a == '\0') {
+        Logger::log("audio: %s | folder %d track %d | vol %d%s",
+                    !DFPlayer.isOK()      ? "not found" :
+                    DFPlayer.isPlaying()  ? "playing"   : "ready",
+                    DFPlayer.currentFolder(), DFPlayer.currentTrack(),
+                    DFPlayer.volume(),
+                    DFPlayer.isOK() ? "" : " (no module)");
+        Logger::log("flags: -play F T | -loop F | -pause | -resume | -next | -prev | -stop | -vol N | -vol+ | -vol-");
+      }
+      else if (strncmp(a, "-play", 5) == 0) {
+        const char* rest = a + 5;
+        while (*rest == ' ') rest++;
+        int f = 0, t = 1;
+        if (sscanf(rest, "%d %d", &f, &t) >= 1 && f >= 1) {
+          DFPlayer.playFolder((uint8_t)f, (uint8_t)t);
+          Logger::log("[serial] audio play folder %d track %d", f, t);
+        } else Logger::warn("usage: audio -play <folder> [track]  e.g. audio -play 1 3");
+      }
+      else if (strncmp(a, "-loop", 5) == 0) {
+        const char* rest = a + 5;
+        while (*rest == ' ') rest++;
+        int f = atoi(rest);
+        if (f >= 1) {
+          DFPlayer.playFolderLoop((uint8_t)f);
+          Logger::log("[serial] audio loop folder %d", f);
+        } else Logger::warn("usage: audio -loop <folder>  e.g. audio -loop 1");
+      }
+      else if (strncmp(a, "-pause",  6) == 0) { DFPlayer.pause();   Logger::log("[serial] audio paused");  }
+      else if (strncmp(a, "-resume", 7) == 0) { DFPlayer.resume();  Logger::log("[serial] audio resumed"); }
+      else if (strncmp(a, "-next",   5) == 0) { DFPlayer.next();    Logger::log("[serial] audio next");    }
+      else if (strncmp(a, "-prev",   5) == 0) { DFPlayer.previous(); Logger::log("[serial] audio prev");   }
+      else if (strncmp(a, "-stop",   5) == 0) { DFPlayer.pause();   Logger::log("[serial] audio stopped (paused)"); }
+      else if (strncmp(a, "-vol+",   5) == 0) { DFPlayer.volumeUp();   Logger::log("[serial] audio vol -> %d", DFPlayer.volume()); }
+      else if (strncmp(a, "-vol-",   5) == 0) { DFPlayer.volumeDown(); Logger::log("[serial] audio vol -> %d", DFPlayer.volume()); }
+      else if (strncmp(a, "-vol",    4) == 0) {
+        const char* rest = a + 4;
+        while (*rest == ' ') rest++;
+        int v = atoi(rest);
+        if (*rest && v >= 0 && v <= 30) {
+          DFPlayer.setVolume((uint8_t)v);
+          Persist.save();
+          Logger::log("[serial] audio vol -> %d (saved)", v);
+        } else Logger::warn("usage: audio -vol 0..30");
+      }
+      else Logger::warn("unknown audio flag '%s' — type 'audio'", a);
+    }
+
     // --- lights ---
     else if (strncmp(line, "ring ", 5) == 0) {
       uint8_t r, g, b;
@@ -302,7 +354,149 @@ private:
       RingOFLeds.clear();
       RingOFLeds.show();
       RGBButton.clear();
+      Strip.clear(); Strip.show();
       Logger::log("[serial] lights cleared");
+    }
+
+    // --- strip (WS2805 RGBCCT) ---
+    else if (strncmp(line, "strip ", 6) == 0) {
+      const char* a = line + 6;
+      while (*a == ' ') a++;
+      if (strcmp(a, "clear") == 0) {
+        Strip.clear(); Strip.show();
+        Logger::log("[serial] strip cleared");
+      }
+      else if (strncmp(a, "ww", 2) == 0 && (a[2] == '\0' || a[2] == ' ')) {
+        // strip ww [0..255] — warm white channel (default 255)
+        int v = (a[2] == ' ') ? atoi(a + 3) : 255;
+        if (v < 0) v = 0; if (v > 255) v = 255;
+        Strip.setAllWW((uint8_t)v);
+        Logger::log("[serial] strip warm white %d", v);
+      }
+      else if (strncmp(a, "cw", 2) == 0 && (a[2] == '\0' || a[2] == ' ')) {
+        // strip cw [0..255] — cool white channel (default 255)
+        int v = (a[2] == ' ') ? atoi(a + 3) : 255;
+        if (v < 0) v = 0; if (v > 255) v = 255;
+        Strip.setAllCW((uint8_t)v);
+        Logger::log("[serial] strip cool white %d", v);
+      }
+      else if (strncmp(a, "cct ", 4) == 0) {
+        // strip cct R G B CW WW — set all 5 channels at once (each 0..255)
+        int r, g, b, cw, ww;
+        if (sscanf(a + 4, "%d %d %d %d %d", &r, &g, &b, &cw, &ww) == 5
+            && r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255
+            && cw >= 0 && cw <= 255 && ww >= 0 && ww <= 255) {
+          Strip.setToColorCCT((uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)cw, (uint8_t)ww);
+          Logger::log("[serial] strip cct R%d G%d B%d CW%d WW%d", r, g, b, cw, ww);
+        } else Logger::warn("usage: strip cct 255 0 0 0 128   (R G B CW WW, each 0..255)");
+      }
+      else if (strcmp(a, "disco") == 0) {
+        Strip.showDisco(); Logger::log("[serial] strip disco");
+      }
+      else if (strcmp(a, "bench") == 0) {
+        // strip bench — time how long the strip code really takes (microseconds)
+        unsigned long t0 = micros();
+        Strip.stepDisco();                       // generate random colours for all ICs
+        unsigned long t1 = micros();
+        Strip.show();                            // encode + send over SPI
+        unsigned long t2 = micros();
+        Logger::log("[bench] stepDisco %lu us | show (encode+SPI) %lu us | total %lu us",
+                    t1 - t0, t2 - t1, t2 - t0);
+      }
+      else if (strncmp(a, "bright", 6) == 0) {
+        // strip bright N — strip brightness 0..255 (scales all channels; not saved)
+        int v = atoi(a + 6);
+        if (a[6] == ' ' && v >= 0 && v <= 255) {
+          Strip.setBrightness((uint8_t)v);
+          Logger::log("[serial] strip brightness -> %d (applies to the NEXT color command)", v);
+        } else Logger::log("strip brightness = %d  (usage: strip bright 0..255)", Strip.getBrightness());
+      }
+      else if (strncmp(a, "hsv ", 4) == 0) {
+        // strip hsv H S V — hue 0..255, saturation 0..255, value 0..255
+        int h, sa, va;
+        if (sscanf(a + 4, "%d %d %d", &h, &sa, &va) == 3
+            && h >= 0 && h <= 255 && sa >= 0 && sa <= 255 && va >= 0 && va <= 255) {
+          Strip.setToColorHSV((uint8_t)h, (uint8_t)sa, (uint8_t)va);
+          Strip.show();
+          Logger::log("[serial] strip hsv %d %d %d", h, sa, va);
+        } else Logger::warn("usage: strip hsv 160 255 255   (hue sat val, each 0..255)");
+      }
+      else if (strncmp(a, "fade ", 5) == 0) {
+        uint8_t r, g, b;
+        if (parseColor(a + 5, r, g, b)) {
+          Logger::log("[serial] fading strip...");
+          Strip.fadeToColor(r, g, b);                 // blocks ~0.6 s
+        } else Logger::warn("usage: strip fade 255 136 0  or  strip fade #ff8800");
+      }
+      else if (strncmp(a, "wipe ", 5) == 0) {
+        uint8_t r, g, b;
+        if (parseColor(a + 5, r, g, b)) {
+          Logger::log("[serial] wiping strip... (blocks several seconds)");
+          Strip.wipeToColor(r, g, b);                 // one IC after the other
+        } else Logger::warn("usage: strip wipe 0 255 255  or  strip wipe #00ffff");
+      }
+      else if (strncmp(a, "led ", 4) == 0) {
+        // strip led N <color> — set ONE IC (0-based), keep the others as they are
+        int n = atoi(a + 4);
+        const char* rest = strchr(a + 4, ' ');
+        uint8_t r, g, b;
+        if (n >= 0 && n < WS2805_N_LEDS && rest && parseColor(rest + 1, r, g, b)) {
+          Strip.setToColorSingle((uint8_t)n, r, g, b);
+          Strip.show();
+          Logger::log("[serial] strip led %d -> %d %d %d", n, r, g, b);
+        } else Logger::warn("usage: strip led 5 255 0 0   (IC 0..%d, others unchanged)", WS2805_N_LEDS - 1);
+      }
+      else if (strncmp(a, "fadeic ", 7) == 0) {
+        // strip fadeic N <color> — fade ONE IC to a colour
+        int n = atoi(a + 7);
+        const char* rest = strchr(a + 7, ' ');
+        uint8_t r, g, b;
+        if (n >= 0 && n < WS2805_N_LEDS && rest && parseColor(rest + 1, r, g, b)) {
+          Strip.fadeToColorSingle((uint8_t)n, r, g, b);   // blocks ~0.6 s
+          Logger::log("[serial] strip IC %d faded -> %d %d %d", n, r, g, b);
+        } else Logger::warn("usage: strip fadeic 5 255 0 0   (IC 0..%d)", WS2805_N_LEDS - 1);
+      }
+      else if (strncmp(a, "flicker", 7) == 0) {
+        // strip flicker [seconds] — warm-white candle effect (blocks, default 4 s, max 30)
+        int sec = (a[7] == ' ') ? atoi(a + 8) : 4;
+        if (sec < 1) sec = 1; if (sec > 30) sec = 30;
+        Logger::log("[serial] strip candle flicker for %d s...", sec);
+        Strip.flickerBegin();
+        unsigned long t0 = millis();
+        while (millis() - t0 < (unsigned long)sec * 1000UL) { Strip.flickerUpdate(); delay(40); }
+        Strip.clear(); Strip.show();
+      }
+      else if (strncmp(a, "ic ", 3) == 0) {
+        // strip ic N <color> — light only IC N (0-based), everything else off
+        int n = atoi(a + 3);
+        const char* rest = strchr(a + 3, ' ');
+        uint8_t r, g, b;
+        if (n >= 0 && n < WS2805_N_LEDS && rest && parseColor(rest + 1, r, g, b)) {
+          Strip.clear();
+          Strip.setToColorSingle((uint8_t)n, r, g, b);
+          Strip.show();
+          Logger::log("[serial] strip IC %d -> %d %d %d", n, r, g, b);
+        } else Logger::warn("usage: strip ic 0 255 0 0   (IC 0..%d)", WS2805_N_LEDS - 1);
+      }
+      else if (strcmp(a, "walk") == 0) {
+        // light ICs one at a time (red) so you can see where it breaks. Blocks ~0.15 s per IC.
+        Logger::log("[serial] strip walk...");
+        for (uint8_t i = 0; i < WS2805_N_LEDS; i++) {
+          Strip.clear();
+          Strip.setToColorSingle(i, 255, 0, 0);
+          Strip.show();
+          Logger::log("IC %d", i);
+          delay(150);
+        }
+        Strip.clear(); Strip.show();
+      }
+      else {
+        uint8_t r, g, b;
+        if (parseColor(a, r, g, b)) {
+          Strip.setToColor(r, g, b);
+          Logger::log("[serial] strip -> %d %d %d", r, g, b);
+        } else Logger::warn("unknown strip command — type 'help lights' for the list");
+      }
     }
 
     // --- info ---
@@ -318,11 +512,16 @@ private:
                   Buzzer.isMuted()      ? "muted"   : "on",
                   Buzzer.cuePackName(),
                   Buzzer.cueGapBefore(), Buzzer.cueGapAfter());
+      Logger::log("audio: %s | folder %d track %d | vol %d",
+                  !DFPlayer.isOK()     ? "not found" :
+                  DFPlayer.isPlaying() ? "playing"   : "ready",
+                  DFPlayer.currentFolder(), DFPlayer.currentTrack(),
+                  DFPlayer.volume());
     }
     else if (strcmp(line, "help") == 0) {
-      Logger::log("Discobox serial console. Topics: gestures | settings | buzzer | lights");
+      Logger::log("Discobox serial console. Topics: gestures | settings | buzzer | audio | lights");
       Logger::log("  help <topic>  - what each command in that topic does");
-      Logger::log("  status        - current mode, setting, song, mute and cue-gap state");
+      Logger::log("  status        - current mode, setting, song, mute, cue-gap and audio state");
     }
     else if (strncmp(line, "help ", 5) == 0) {
       const char* topic = line + 5;
@@ -368,13 +567,43 @@ private:
         Logger::log("disco           one random-color step on the ring + button");
         Logger::log("fade <color>    smoothly fade the ring to a color (~0.6s)");
         Logger::log("wipe <color>    fill the ring one LED at a time (~4s)");
-        Logger::log("clear           turn every light off");
+        Logger::log("clear           turn every light off (ring, button and strip)");
+        Logger::log("strip <color>   whole WS2805 strip to an RGB color");
+        Logger::log("strip ww [0-255]   warm white channel (default 255)");
+        Logger::log("strip cw [0-255]   cool white channel (default 255)");
+        Logger::log("strip cct R G B CW WW   set all 5 channels (each 0..255)");
+        Logger::log("strip hsv H S V         hue/sat/value, each 0..255");
+        Logger::log("strip bright [0-255]    strip brightness (no number = show current)");
+        Logger::log("strip fade <color>      smooth fade of the whole strip (~0.6s)");
+        Logger::log("strip wipe <color>      fill IC by IC (blocks several seconds)");
+        Logger::log("strip led N <color>     set ONE IC (0-based), others unchanged");
+        Logger::log("strip fadeic N <color>  fade ONE IC to a color");
+        Logger::log("strip ic N <color>      only IC N lit, rest off — debug");
+        Logger::log("strip flicker [sec]     warm-white candle effect (default 4s, max 30)");
+        Logger::log("strip walk              light ICs one by one (debug)");
+        Logger::log("strip bench             time one disco frame: generate + send (us)");
+        Logger::log("strip disco | strip clear");
+        Logger::log("note: 1 IC = 3 LEDs, so N is 0..59 on the 3 m strip");
         Logger::log("<color> is 'r g b' (each 0..255) or hex like #ff00ff");
         Logger::log("note: a running animation (e.g. party disco) repaints the ring");
         Logger::log("every frame and will overwrite these — stop it first (sp)");
       }
+      else if (strcmp(topic, "audio") == 0) {
+        Logger::log("Control the DFPlayer Mini MP3 module:");
+        Logger::log("-play F T    play folder F, track T  (e.g. audio -play 1 3)");
+        Logger::log("-loop F      loop all tracks in folder F continuously");
+        Logger::log("-pause       pause playback");
+        Logger::log("-resume      resume from pause");
+        Logger::log("-next        skip to the next track");
+        Logger::log("-prev        go back to the previous track");
+        Logger::log("-stop        pause playback (DFPlayer has no hard stop)");
+        Logger::log("-vol N       set volume 0..30 and save to EEPROM  (e.g. audio -vol 20)");
+        Logger::log("-vol+        volume up one step");
+        Logger::log("-vol-        volume down one step");
+        Logger::log("audio        (no flag) show current status: state / folder / track / vol");
+      }
       else {
-        Logger::warn("no such topic '%s' - try: gestures, settings, buzzer, lights", topic);
+        Logger::warn("no such topic '%s' - try: gestures, settings, buzzer, audio, lights", topic);
       }
     }
     else {

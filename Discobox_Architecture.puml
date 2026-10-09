@@ -406,7 +406,7 @@ SettingItem <|-- CueMuteSetting
 SettingItem <|-- CueThemeSetting
 SettingItem <|-- VolumeSetting
 SettingsMenu o-- SettingItem
-VolumeSetting ..> DFPlayerController : Audio.setVolume()
+VolumeSetting ..> DFPlayerController : DFPlayer.setVolume()
 
 
 /' ================================================================
@@ -487,5 +487,87 @@ class SerialCommander {
     -{static} toLower(s: char*) : void
     -{static} parseColor(s: const char*, r: uint8_t&, g: uint8_t&, b: uint8_t&) : bool
 }
+
+' ══════════════════════════════════════════════════════════════════
+' TEST LAYER  (pio test -e native)
+' ══════════════════════════════════════════════════════════════════
+
+package "test/mocks" <<Rectangle>> {
+
+    class ArduinoMock <<header-only>> {
+        +{static} mock_set_millis(ms: unsigned long) : void
+        +{static} mock_advance_millis(ms: unsigned long) : void
+        +{static} mock_set_pin(pin: uint8_t, val: int) : void
+        +{static} mock_reset() : void
+        +{static} millis() : unsigned long
+        +{static} digitalRead(pin: uint8_t) : int
+        +{static} delay(ms: unsigned long) : void
+        +{static} pinMode(pin: uint8_t, mode: uint8_t) : void
+    }
+
+    class DFRobotDFPlayerMiniMock <<header-only>> {
+        +{static} mock_dfplayer_set_begin_ok(ok: bool) : void
+        +{static} mock_dfplayer_send_event(type: uint8_t, data: uint8_t) : void
+        +{static} mock_dfplayer_reset() : void
+        +begin(stream: Stream&, wait: bool) : bool
+        +available() : bool
+        +readType() : uint8_t
+        +read() : int
+    }
+}
+
+package "test/test_gesture_button" <<Rectangle>> {
+    class TestGestureButton <<Unity suite>> {
+        +test_single_press()
+        +test_double_press()
+        +test_triple_press()
+        +test_hold()
+        +test_debounce_ignored()
+        +test_is_pressed_while_held()
+        +test_release_clears_gesture()
+        +test_timing_boundary()
+    }
+}
+
+package "test/test_dfplayer" <<Rectangle>> {
+    class TestDFPlayer <<Unity suite>> {
+        +test_begin_ok()
+        +test_begin_fail()
+        +test_volume_set()
+        +test_volume_clamp()
+        +test_volume_up_down()
+        +test_play_folder()
+        +test_pause_resume()
+        +test_next_prev()
+        +test_auto_next_on_finish()
+        +test_auto_next_disabled()
+        +test_step_rate_limit()
+        +... (30 tests total)
+    }
+}
+
+package "test/test_song_player" <<Rectangle>> {
+    class TestSongPlayer <<Unity suite>> {
+        +test_play_starts()
+        +test_stop_stops()
+        +test_elapsed_ms()
+        +test_step_advances()
+        +test_play_from_offset()
+        +test_auto_stop_after_last_note()
+        +test_is_playing_false_after_stop()
+        +... (12 tests total)
+    }
+}
+
+' Mocks replace real Arduino/DFPlayer headers during native build
+ArduinoMock      ..[#green]> GestureButton        : stubs Arduino.h
+ArduinoMock      ..[#green]> speakerController     : stubs Arduino.h
+ArduinoMock      ..[#green]> DFPlayerController    : stubs Arduino.h
+DFRobotDFPlayerMiniMock ..[#green]> DFPlayerController : stubs DFRobotDFPlayerMini.h
+
+' Test suites exercise the real production classes via the mocks
+TestGestureButton  ..> GestureButton     : tests
+TestDFPlayer       ..> DFPlayerController : tests
+TestSongPlayer     ..> speakerController  : tests
 
 @enduml

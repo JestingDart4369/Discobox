@@ -101,19 +101,21 @@ public:
 
   void Exit() override {
     _running = false;
-    Buzzer.autoNext(false);
-    Buzzer.stop();
+    stopMusic();
+    Strip.clear();
+    Strip.show();
   }
 
   void Step(unsigned long now) override {
     if (!_running) return;
 
-    // disco lights (the music continues by itself — Buzzer auto-next)
+    // disco lights (the music continues by itself — DFPlayer / Buzzer auto-next)
     if (now - _last_disco >= DISCO_STEP_MS) {
       _last_disco = now;
-      RingOFLeds.stepDisco();
-      RingOFLeds.show();
-      RGBButton.stepDisco();
+      RingOFLeds.showDisco();
+      RGBButton.showDisco();
+      Strip.showDisco();
+      
     }
   }
 
@@ -122,25 +124,31 @@ public:
     if (_running) {
       Logger::log("Party: stop");
       _running = false;
-      Buzzer.autoNext(false);
-      Buzzer.stop();
+      stopMusic();
       RingOFLeds.clear();
       RingOFLeds.setToColorSingleHex(1, color());
       RingOFLeds.show();
       RGBButton.setToColorHex(color());
+      Strip.clear();
+      Strip.show();
     } else {
       Logger::log("Party: start!");
       _running = true;
-      Buzzer.autoNext(true);   // keep the song list going by itself
-      Buzzer.play();
+      if (DFPlayer.isOK()) {
+        Logger::log("Party: DFPlayer playlist, folder %d", PARTY_FOLDER);
+        DFPlayer.setAutoNext(true);      // step() advances to the next track by itself
+        DFPlayer.playFolder(PARTY_FOLDER, 1);
+      } else {
+        Logger::warn("Party: DFPlayer not found — lights only, no music");
+      }
     }
   }
 
-  // DP — next song
-  void DP() override { Buzzer.next(); }
+  // DP — next track
+  void DP() override { if (_running) DFPlayer.next(); }
 
-  // TP — previous song
-  void TP() override { Buzzer.previous(); }
+  // TP — previous track
+  void TP() override { if (_running) DFPlayer.previous(); }
 
   // Cues: SP plays "start" or "stop" depending on what just happened
   // (SP() above already flipped _running by the time this is read),
@@ -157,6 +165,13 @@ private:
   bool          _running    = false;   // is the party on right now?
   unsigned long _last_disco = 0;       // timing for the disco lights
   static const uint16_t DISCO_STEP_MS = 120;  // how fast the colors change
+  static const uint8_t  PARTY_FOLDER  = 2;    // SD card folder /02/ = the party playlist
+
+  // Stop the party music (DFPlayer only — the piezo is just for UI cues here).
+  void stopMusic() {
+    DFPlayer.setAutoNext(false);
+    DFPlayer.pause();                    // no-op if nothing is playing
+  }
 };
 
 

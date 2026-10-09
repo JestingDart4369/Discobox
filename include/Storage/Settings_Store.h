@@ -98,7 +98,9 @@ public:
     Buzzer.setCueGap(d.gapBeforeMs, d.gapAfterMs);
     Buzzer.setMuted(d.muted != 0);
     RingOFLeds.setBrightness(d.brightness);
+#ifdef DFPLAYERCONTROLLER_H
     DFPlayer.setVolume(d.volume);
+#endif
 
     Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, brightness %d, vol %d)",
                 Buzzer.cuePackName(), d.gapBeforeMs, d.gapAfterMs,
@@ -121,7 +123,11 @@ public:
     d.gapAfterMs   = Buzzer.cueGapAfter();
     d.muted        = Buzzer.isMuted() ? 1 : 0;
     d.brightness   = RingOFLeds.getBrightness();
+#ifdef DFPLAYERCONTROLLER_H
     d.volume       = DFPlayer.volume();
+#else
+    d.volume       = 0;
+#endif
 
     EEPROM.put(0, d);   // only actually rewrites bytes that changed
     Logger::log("Settings: saved");

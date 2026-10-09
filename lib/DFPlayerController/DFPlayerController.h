@@ -7,9 +7,9 @@
   step() muss jeden loop() aufgerufen werden — darin wird erkannt
   wann ein Track endet und der nächste automatisch gestartet.
 
-  Verdrahtung:
-    Arduino D7 (TX) → DFPlayer RX  (1kΩ in Serie!)
-    Arduino D6 (RX) ← DFPlayer TX
+  Verdrahtung (R4 WiFi — Serial1 = D0/D1):
+    Arduino D1 (TX) → DFPlayer RX  (1kΩ in Serie!)
+    Arduino D0 (RX) ← DFPlayer TX
     DFPlayer VCC    → 5V (Buck Converter)
     DFPlayer GND    → GND (gemeinsam mit Arduino!)
 

@@ -15,6 +15,9 @@
 #include <LedController.h>
 #include <Logger.h>
 #include <GestureButton.h>
+#define WS2805_N_LEDS 60   // pixel (IC) count — must match WS2805<60> below
+#define WS2805_INDEX_SHIFT 0 // off-by-one fix: try +1 or -1 if the strip looks shifted by one IC (see WS2805.h)
+#define WS2805_CHUNK_BYTES 0   // 0 = whole frame in one SPI transfer (20 = one pixel per call, breaks the frame)
 #include <WS2805.h>
 // Buzzer (piezo songs)
 #include <SongPlayer.h>
@@ -32,7 +35,7 @@
   //  Setup Led
     ARGB<D4, 16> RingOFLeds;
     RGBLeds<D3, D5, D6> RGBButton;
-    WS2805<D7> Strip;
+    WS2805<60> Strip;  // 20 ICs/m × 3 m = 60 pixels (each IC drives 3 LEDs, 180 LEDs total)
 
     //brightness level 255/15 = 17 steps for a full circle on the ring
     uint8_t brightness = 15;
@@ -97,6 +100,9 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
 
   // Initialization of peripherals
+    // LED strip first — clears SPI bus noise before DFPlayer's 2s boot delay
+      Strip.setup();   // takes SPI control + sends all-off immediately
+
     //button:
       Button.setup();
       RGBButton.setup();
@@ -106,10 +112,6 @@ void setup() {
       RingOFLeds.setup();
       RingOFLeds.setToColor(255,0,0);
       RingOFLeds.show();
-    //led-strip
-      Strip.setup();
-      Strip.setToColor(0,0,0);
-      Strip.show();
     //speaker:
       speaker.setup();
     // DFPlayer Mini — Serial1 (D0=RX ← DFPlayer TX, D1=TX → DFPlayer RX via 1kΩ)

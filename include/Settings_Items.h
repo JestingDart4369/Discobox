@@ -172,13 +172,18 @@ protected:
 
 
 /* ================================================================
-   DFPlayer volume
+   DFPlayer volume  (only compiled when DFPlayerController.h is included)
    ================================================================ */
+#ifdef DFPLAYERCONTROLLER_H
 /**
  * @brief Setting that steps the DFPlayer volume in increments of 2 (0–30).
  *
  * Each SP bump increases volume by 2, wrapping back to 0 past 30.
  * Value is persisted immediately via Persist.save().
+ *
+ * @note Guarded by #ifdef DFPLAYERCONTROLLER_H — this class and its global
+ * instance are omitted entirely when DFPlayerController.h has not been
+ * included, so Settings_Items.h compiles cleanly without audio hardware.
  */
 class VolumeSetting : public SettingItem {
 public:
@@ -200,6 +205,7 @@ protected:
 private:
   static const uint8_t STEP = 2;  // 16 steps: 0, 2, 4, … 30
 };
+#endif // DFPLAYERCONTROLLER_H
 
 
 /* ================================================================
@@ -256,11 +262,14 @@ private:
    To add a setting: create an instance, add it to SETTINGS_LIST.
    ================================================================ */
 BrightnessSetting settingBrightness;
-VolumeSetting      settingVolume;
-CueMuteSetting     settingMute;
-CueThemeSetting    settingTheme;
-
+CueMuteSetting    settingMute;
+CueThemeSetting   settingTheme;
+#ifdef DFPLAYERCONTROLLER_H
+VolumeSetting     settingVolume;
 SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingVolume, &settingMute, &settingTheme };
+#else
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingMute, &settingTheme };
+#endif
 SettingsMenu SettingsList(SETTINGS_LIST, sizeof(SETTINGS_LIST) / sizeof(SETTINGS_LIST[0]));
 
 #endif // SETTINGS_ITEMS_H
