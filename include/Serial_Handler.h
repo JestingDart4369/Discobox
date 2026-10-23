@@ -98,9 +98,9 @@ private:
       return true;
     }
 
-    // "r g b" form
+    // "r,g,b" form
     int rr, gg, bb;
-    if (sscanf(s, "%d %d %d", &rr, &gg, &bb) == 3) {
+    if (sscanf(s, "%d,%d,%d", &rr, &gg, &bb) == 3) {
       r = constrain(rr, 0, 255);
       g = constrain(gg, 0, 255);
       b = constrain(bb, 0, 255);
@@ -383,7 +383,7 @@ private:
       else if (strncmp(a, "cct ", 4) == 0) {
         // strip cct R G B CW WW — set all 5 channels at once (each 0..255)
         int r, g, b, cw, ww;
-        if (sscanf(a + 4, "%d %d %d %d %d", &r, &g, &b, &cw, &ww) == 5
+        if (sscanf(a + 4, "%d,%d,%d,%d,%d", &r, &g, &b, &cw, &ww) == 5
             && r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255
             && cw >= 0 && cw <= 255 && ww >= 0 && ww <= 255) {
           Strip.setToColorCCT((uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)cw, (uint8_t)ww);

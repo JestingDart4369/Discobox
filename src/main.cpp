@@ -102,7 +102,8 @@ void setup() {
   // Initialization of peripherals
     // LED strip first — clears SPI bus noise before DFPlayer's 2s boot delay
       Strip.setup();   // takes SPI control + sends all-off immediately
-
+      Strip.clear();
+      Strip.show();
     //button:
       Button.setup();
       RGBButton.setup();
@@ -110,6 +111,7 @@ void setup() {
 
     //ring:
       RingOFLeds.setup();
+      RingOFLeds.clear();
       RingOFLeds.setToColor(255,0,0);
       RingOFLeds.show();
     //speaker:

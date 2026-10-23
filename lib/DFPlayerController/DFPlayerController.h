@@ -15,9 +15,7 @@
 
   Verwendung (das Serial-Objekt kommt von main.cpp — wie speaker beim Buzzer):
 
-    // main.cpp:
-    // Global instance `DFPlayer` is auto-created at the bottom of this file.
-    // Just call:
+
     Serial1.begin(9600);          // before DFPlayer.begin()
     DFPlayer.begin(25);           // in setup()
     DFPlayer.playFolder(1, 1);   // /01/001.mp3 starten

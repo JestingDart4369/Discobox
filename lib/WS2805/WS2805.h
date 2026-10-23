@@ -110,7 +110,7 @@ public:
     uint16_t start = (WS2805_INDEX_SHIFT < 0) ? (uint16_t)(-WS2805_INDEX_SHIFT) : 0;
     for (uint16_t i = start; i < count; i++) {
       // Wire order: R, G, B, W1 (WW), W2 (CW) — high bit first (datasheet)
-      uint8_t ch[5] = { pixels[i].r, pixels[i].g, pixels[i].b, pixels[i].ww, pixels[i].cw };
+      uint8_t ch[5] = {pixels[i].g, pixels[i].r, pixels[i].b, pixels[i].ww, pixels[i].cw };
       for (uint8_t c = 0; c < 5; c++) encodeChannel(ch[c], &_buf[pos + c * 4]);
       pos += PIXEL_BYTES;
     }

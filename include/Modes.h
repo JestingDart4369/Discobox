@@ -190,10 +190,11 @@ public:
       RingOFLeds.setToColorSingleHex(i, color());
     RingOFLeds.show();
     RGBButton.setToColorHex(color());
-    Buzzer.play(0);
+    Buzzer.play(1);
+    DFPlayer.playFolder(1, 1); 
   }
 
-  void Exit() override { Buzzer.stop(); }
+  void Exit() override { Buzzer.stop(); DFPlayer.pause(); }
 
   void Step(unsigned long now) override { /* TODO: animations, every frame */ }
 
@@ -211,9 +212,9 @@ private:
    MODE 3 — (lorem)
    ================================================================ */
 /// @brief Placeholder mode 3. Gestures are not yet assigned.
-class Mode3 : public ModeBase {
+class Mode_3 : public ModeBase {
 public:
-  const char* name()  const override { return "Mode3"; }
+  const char* name()  const override { return "Mode_3"; }
   uint32_t    color() const override { return 0x00FFFF; }   // cyan
 
   void Enter() override {
@@ -379,10 +380,10 @@ private:
    ================================================================ */
 PartyMode modeParty;
 LinkClick modeLinkClick;
-Mode3     mode3;
+Mode_3     mode_3;
 Settings  modeSettings;
 
-ModeBase* MODE_LIST[] = { &modeParty, &modeLinkClick, &mode3, &modeSettings };
+ModeBase* MODE_LIST[] = { &modeParty, &modeLinkClick, &mode_3, &modeSettings };
 ModeManager Modes(MODE_LIST, sizeof(MODE_LIST) / sizeof(MODE_LIST[0]));
 
 #endif // MODES_H
