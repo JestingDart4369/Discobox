@@ -93,12 +93,30 @@ void test_step_auto_stops_after_last_note() {
   mock_set_millis(0);
   spk.play(kMelody, kMelodyLen);
 
-  // step() fires all notes whose time has come but does NOT call stop() inline —
-  // stop() is triggered at the START of the next step() once _index >= _count.
-  // So we need two calls: one to exhaust the note list, one to detect the end.
+  // Last note starts at 400 ms and lasts 200 ms -> the song ends at 600 ms.
   mock_set_millis(700);
-  spk.step();   // fires note[2] (last), _index = kMelodyLen
-  spk.step();   // _index >= _count → stop()
+  spk.step();   // fires note[2] (last); 700 >= 600 -> stop()
+  TEST_ASSERT_FALSE(spk.isPlaying());
+}
+
+void test_step_keeps_playing_during_last_note() {
+  // Regression: the last note used to be cut off — stop() ran right after it
+  // STARTED. It must keep playing until time_ms + duration_ms (400 + 200 = 600).
+  speakerController spk(SPK_PIN);
+  mock_set_millis(0);
+  spk.play(kMelody, kMelodyLen);
+
+  mock_set_millis(450);
+  spk.step();   // fires the last note (starts at 400)
+  spk.step();
+  TEST_ASSERT_TRUE_MESSAGE(spk.isPlaying(), "last note cut off");
+
+  mock_set_millis(599);
+  spk.step();
+  TEST_ASSERT_TRUE(spk.isPlaying());
+
+  mock_set_millis(600);
+  spk.step();
   TEST_ASSERT_FALSE(spk.isPlaying());
 }
 
@@ -152,6 +170,41 @@ void test_play_restarts_from_beginning() {
 }
 
 // ── Runner ───────────────────────────────────────────────────────────────────
+// ── volume ──────────────────────────────────────────────────────────────────
+void test_volume_defaults_to_max() {
+  speakerController spk(SPK_PIN);
+  TEST_ASSERT_EQUAL(SPEAKER_MAX_VOLUME, spk.volume());
+}
+
+void test_volume_is_clamped() {
+  speakerController spk(SPK_PIN);
+  spk.setVolume(200);
+  TEST_ASSERT_EQUAL(SPEAKER_MAX_VOLUME, spk.volume());
+  spk.setVolume(3);
+  TEST_ASSERT_EQUAL(3, spk.volume());
+}
+
+void test_volume_zero_keeps_timing() {
+  // silent, but the song still runs and ends on time (cues/auto-next rely on it)
+  speakerController spk(SPK_PIN);
+  spk.setVolume(0);
+  mock_set_millis(0);
+  spk.play(kMelody, kMelodyLen);
+  mock_set_millis(450);
+  spk.step();
+  TEST_ASSERT_TRUE(spk.isPlaying());
+  mock_set_millis(600);
+  spk.step();
+  TEST_ASSERT_FALSE(spk.isPlaying());
+}
+
+void test_duty_table_loud_to_quiet() {
+  TEST_ASSERT_TRUE(SPEAKER_DUTY[0] == 0.0f);                    // 0 = silent
+  TEST_ASSERT_TRUE(SPEAKER_DUTY[SPEAKER_MAX_VOLUME] == 50.0f);  // max = like tone()
+  for (uint8_t i = 1; i <= SPEAKER_MAX_VOLUME; i++)
+    TEST_ASSERT_TRUE(SPEAKER_DUTY[i] > SPEAKER_DUTY[i - 1]);    // strictly louder per level
+}
+
 int main() {
   UNITY_BEGIN();
 
@@ -166,11 +219,17 @@ int main() {
 
   RUN_TEST(test_step_keeps_playing_mid_song);
   RUN_TEST(test_step_auto_stops_after_last_note);
+  RUN_TEST(test_step_keeps_playing_during_last_note);
   RUN_TEST(test_step_is_no_op_when_not_playing);
 
   RUN_TEST(test_play_from_sets_playing);
   RUN_TEST(test_play_from_skips_early_notes);
   RUN_TEST(test_play_restarts_from_beginning);
+
+  RUN_TEST(test_volume_defaults_to_max);
+  RUN_TEST(test_volume_is_clamped);
+  RUN_TEST(test_volume_zero_keeps_timing);
+  RUN_TEST(test_duty_table_loud_to_quiet);
 
   return UNITY_END();
 }

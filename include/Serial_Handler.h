@@ -34,6 +34,7 @@
 */
 
 #include <Arduino.h>
+#include <ColorParse.h>   // parseColor / parseInts — shared with the tests
 
 /**
  * @brief Non-blocking serial command interpreter for the Discobox.
@@ -51,6 +52,15 @@ public:
    * Call every frame (not just every animation frame — put it in loop() before
    * the frame-rate gate so responses stay snappy). Non-blocking.
    */
+  /**
+   * @brief Run ONE already-read line (used as the fallback of the new shell,
+   * lib/Shell — the shell reads Serial and passes on what it doesn't know yet).
+   * @param line Null-terminated command line; modified in place.
+   */
+  void handleLine(char* line) {
+    if (line && *line) handle(line);
+  }
+
   void update() {
     while (Serial.available() > 0) {
       char c = (char)Serial.read();
@@ -77,36 +87,12 @@ private:
   }
 
   /**
-   * @brief Parse a color from text — either "255 0 0" (r g b) or "#ff00ff" / "ff00ff" (hex).
-   * @param s  Input string (leading spaces are skipped).
-   * @param r  Output: red channel (0..255).
-   * @param g  Output: green channel (0..255).
-   * @param b  Output: blue channel (0..255).
-   * @return true on success; false if the string doesn't match either format.
+   * @brief Parse a color: "255 0 0", "255,0,0", "#ff00ff" or "ff00ff".
+   * Thin wrapper around ColorParse::parseColor (lib/ColorParse) so the same
+   * code is unit-tested on the laptop and on the board.
    */
   static bool parseColor(const char* s, uint8_t& r, uint8_t& g, uint8_t& b) {
-    while (*s == ' ') s++;
-    if (*s == '\0') return false;
-
-    // hex form
-    const char* hexStart = (*s == '#') ? s + 1 : nullptr;
-    if (!hexStart && strlen(s) == 6 && strspn(s, "0123456789abcdef") == 6)
-      hexStart = s;                       // bare 6-digit hex like ff00ff
-    if (hexStart) {
-      uint32_t h = (uint32_t)strtoul(hexStart, nullptr, 16);
-      r = (h >> 16) & 0xFF;  g = (h >> 8) & 0xFF;  b = h & 0xFF;
-      return true;
-    }
-
-    // "r,g,b" form
-    int rr, gg, bb;
-    if (sscanf(s, "%d,%d,%d", &rr, &gg, &bb) == 3) {
-      r = constrain(rr, 0, 255);
-      g = constrain(gg, 0, 255);
-      b = constrain(bb, 0, 255);
-      return true;
-    }
-    return false;
+    return ColorParse::parseColor(s, r, g, b);
   }
 
   /**
@@ -325,10 +311,9 @@ private:
     else if (strncmp(line, "brightness", 7) == 0) {
       int v = atoi(line + 7);
       if (v >= 0 && v <= 255) {
-        RingOFLeds.setBrightness((uint8_t)v);
-        RingOFLeds.show();
+        Brightness.setLevel(BrightnessManager::RING, (uint8_t)v);   // shown at once
         Persist.save();
-        Logger::log("[serial] brightness -> %d", v);
+        Logger::log("[serial] ring brightness -> %d (saved)", v);
       } else Logger::warn("bright must be 0..255");
     }
     else if (strcmp(line, "disco") == 0) {
@@ -382,10 +367,12 @@ private:
       }
       else if (strncmp(a, "cct ", 4) == 0) {
         // strip cct R G B CW WW — set all 5 channels at once (each 0..255)
-        int r, g, b, cw, ww;
-        if (sscanf(a + 4, "%d,%d,%d,%d,%d", &r, &g, &b, &cw, &ww) == 5
-            && r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255
-            && cw >= 0 && cw <= 255 && ww >= 0 && ww <= 255) {
+        // spaces or commas: "strip cct 255 0 0 0 128" or "strip cct 255,0,0,0,128"
+        int v[5] = {0};
+        bool ok = ColorParse::parseInts(a + 4, v, 5);
+        for (uint8_t i = 0; ok && i < 5; i++) ok = (v[i] >= 0 && v[i] <= 255);
+        int r = v[0], g = v[1], b = v[2], cw = v[3], ww = v[4];
+        if (ok) {
           Strip.setToColorCCT((uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)cw, (uint8_t)ww);
           Logger::log("[serial] strip cct R%d G%d B%d CW%d WW%d", r, g, b, cw, ww);
         } else Logger::warn("usage: strip cct 255 0 0 0 128   (R G B CW WW, each 0..255)");
@@ -404,18 +391,23 @@ private:
                     t1 - t0, t2 - t1, t2 - t0);
       }
       else if (strncmp(a, "bright", 6) == 0) {
-        // strip bright N — strip brightness 0..255 (scales all channels; not saved)
+        // strip bright N — strip brightness level 0..255 (shown at once, saved)
         int v = atoi(a + 6);
         if (a[6] == ' ' && v >= 0 && v <= 255) {
-          Strip.setBrightness((uint8_t)v);
-          Logger::log("[serial] strip brightness -> %d (applies to the NEXT color command)", v);
-        } else Logger::log("strip brightness = %d  (usage: strip bright 0..255)", Strip.getBrightness());
+          Brightness.setLevel(BrightnessManager::STRIP, (uint8_t)v);
+          Persist.save();
+          Logger::log("[serial] strip brightness -> %d (saved)", v);
+        } else Logger::log("strip brightness = %d, shown at %d  (usage: strip bright 0..255)",
+                           Brightness.level(BrightnessManager::STRIP),
+                           Brightness.effective(BrightnessManager::STRIP));
       }
       else if (strncmp(a, "hsv ", 4) == 0) {
         // strip hsv H S V — hue 0..255, saturation 0..255, value 0..255
-        int h, sa, va;
-        if (sscanf(a + 4, "%d %d %d", &h, &sa, &va) == 3
-            && h >= 0 && h <= 255 && sa >= 0 && sa <= 255 && va >= 0 && va <= 255) {
+        int v[3] = {0};
+        bool ok = ColorParse::parseInts(a + 4, v, 3);
+        for (uint8_t i = 0; ok && i < 3; i++) ok = (v[i] >= 0 && v[i] <= 255);
+        int h = v[0], sa = v[1], va = v[2];
+        if (ok) {
           Strip.setToColorHSV((uint8_t)h, (uint8_t)sa, (uint8_t)va);
           Strip.show();
           Logger::log("[serial] strip hsv %d %d %d", h, sa, va);
@@ -584,7 +576,7 @@ private:
         Logger::log("strip bench             time one disco frame: generate + send (us)");
         Logger::log("strip disco | strip clear");
         Logger::log("note: 1 IC = 3 LEDs, so N is 0..59 on the 3 m strip");
-        Logger::log("<color> is 'r g b' (each 0..255) or hex like #ff00ff");
+        Logger::log("<color> is 'r g b', 'r,g,b' (each 0..255) or hex like #ff00ff");
         Logger::log("note: a running animation (e.g. party disco) repaints the ring");
         Logger::log("every frame and will overwrite these — stop it first (sp)");
       }
@@ -613,3 +605,4 @@ private:
 };
 
 #endif // SERIAL_HANDLER_H
+//#The New serialHandler

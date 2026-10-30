@@ -57,11 +57,11 @@ public:
 
   // Lifecycle
   /// @brief Called when the mode becomes active. Override this method to define behavior when entering the mode.
-  virtual void Enter() {}                  
+  virtual void Enter() {}
   /// @brief Called when the mode is being left. Override this method to define behavior when exiting the mode.
   virtual void Exit()  {}
   /// @brief Called every frame while the mode is active. Override this method to define behavior that should occur on each update cycle.
-  virtual void Step(unsigned long now) {}  
+  virtual void Step(unsigned long now) {}
 
   // Gestures — called AFTER the matching cueForXX() below has already
   // been used to pick the sound, so it's safe to change mode state here
@@ -115,7 +115,7 @@ public:
       RingOFLeds.showDisco();
       RGBButton.showDisco();
       Strip.showDisco();
-      
+
     }
   }
 
@@ -191,7 +191,7 @@ public:
     RingOFLeds.show();
     RGBButton.setToColorHex(color());
     Buzzer.play(1);
-    DFPlayer.playFolder(1, 1); 
+    DFPlayer.playFolder(1, 1);
   }
 
   void Exit() override { Buzzer.stop(); DFPlayer.pause(); }
@@ -254,7 +254,7 @@ class Settings : public ModeBase {
 public:
   const char* name()  const override { return "Settings"; }
   uint32_t    color() const override { return 0xFF0000; }   // red
- 
+
   void Enter() override {
     RGBButton.setToColorHex(color());
     for (uint8_t i = 0; i < 4; i++)

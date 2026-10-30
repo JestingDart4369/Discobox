@@ -37,15 +37,20 @@
     RGBLeds<D3, D5, D6> RGBButton;
     WS2805<60> Strip;  // 20 ICs/m × 3 m = 60 pixels (each IC drives 3 LEDs, 180 LEDs total)
 
-    //brightness level 255/15 = 17 steps for a full circle on the ring
-    uint8_t brightness = 15;
+  // One place for all brightness: own level per light + a master on top
+  // (must come AFTER RingOFLeds/RGBButton/Strip, BEFORE Settings_Store.h)
+    #include "Lights/Brightness_Manager.h"
 
-  // Power-resistant settings (cue theme/gap/mute, ring brightness) — must
-  // come AFTER Buzzer + RingOFLeds above, it reads/writes those directly.
+  // One place for all loudness: speaker / buzzer music / buzzer cues + master
+  // (must come AFTER Buzzer + DFPlayer, BEFORE Settings_Store.h)
+    #include "Audio/Volume_Manager.h"
+
+  // Power-resistant settings (cue theme/gap/mute, brightness levels + master,
+  // volume) — must come AFTER Buzzer + Brightness above, it reads/writes those.
     #include "Storage/Settings_Store.h"
 
   // What the Settings mode adjusts (brightness/mute/theme/...) — must
-  // come AFTER Buzzer + RingOFLeds + Persist above, and BEFORE Modes.h.
+  // come AFTER Buzzer + Brightness + Persist above, and BEFORE Modes.h.
     #include "Settings_Items.h"
 
 // Modes (must come AFTER the objects above — Modes.h uses them)
@@ -82,12 +87,16 @@
     while (millis() - t0 < ms) Buzzer.step();
   }
 
-// Serial commands over the USB-C cable (must come AFTER Btn_SP etc. above —
-// typing sp/dp/tp/hold in the Serial Monitor reuses the same functions,
-// so serial-triggered gestures get the same sound cues as the button).
-// Type 'help' in the Serial Monitor to see the commands.
-#include "Serial_Handler.h"
-SerialCommander SerialCmd;
+// Serial command shell over the USB-C cable (lib/Shell, doc/SHELL.md).
+// Type 'help' in the Serial Monitor. Commands live in include/Commands/ and
+// are registered in Commands.h. Must come AFTER every object a command uses
+// (Strip, Buzzer, Modes, ...) and AFTER Btn_SP etc. — typing sp/dp/tp/hold
+// reuses the same functions, so you get the same sound cues as the button.
+#include <Shell.h>
+#include "Commands/Commands.h"
+#define DISCOBOX_VERSION "Discobox 0.5"
+ShellSerialIO ShellIo(Serial, Logger::setQuiet);   // -q also silences Logger
+Shell SerialShell(ShellIo, SHELL_COMMANDS, SHELL_COMMAND_COUNT, DISCOBOX_VERSION);
 
 
 //setup function
@@ -95,6 +104,13 @@ void setup() {
   //logger
     Serial.begin(9600);
     Logger::log("Booting %s", "Discobox");
+
+  //serial shell
+    SerialShell.setTopics(SHELL_TOPICS, SHELL_TOPIC_COUNT);
+  #ifdef DEBUG_ENABLED
+    // checks every command description (ranges, help texts, flag letters ...)
+    if (SerialShell.selfCheck() > 0) Logger::warn("shell: command specs have problems, see [ERROR] lines above");
+  #endif
 
   //Pins
     pinMode(LED_BUILTIN, OUTPUT);
@@ -162,7 +178,7 @@ void loop() {
     Button.update(now);
 
     // Commands from the USB-C cable (Serial Monitor)
-    SerialCmd.update();
+    SerialShell.update();
 
     // Run the active mode's animation frame
     Modes.Step(now);

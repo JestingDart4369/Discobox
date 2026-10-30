@@ -18,8 +18,9 @@
   there, so re-saving the same value again costs nothing.
 
   WHAT'S SAVED
-  Cue theme, cue gap (before/after), cue mute, ring brightness — the
-  things Settings mode / `buzzer -theme|-gap|-mute` / `bright` change.
+  Cue theme, cue gap (before/after), cue mute, DFPlayer volume, and the
+  brightness levels (ring, strip, button) + master brightness — the things
+  Settings mode / `buzzer -theme|-gap|-mute` / `bright` / the CLI change.
   NOT saved: which mode is active, party running/stopped, which song is
   queued — Discobox is meant to always wake up fresh in Party, silent,
   at song 0, regardless of how it was left.
@@ -34,14 +35,14 @@
                        // survive a power cycle (see main.cpp / Serial_Handler.h
                        // for where -theme/-gap/-mute/bright already do this)
 
-  ADD A NEW SETTING: add a field to PersistedSettings, bump VERSION (so
-  old flash data — now the wrong shape — is recognized as stale and
-  replaced with defaults instead of misread), fill the field in save(),
-  apply it in load().
+  ADD A NEW SETTING: APPEND a field at the END of PersistedSettings, bump
+  VERSION, fill the field in save(), apply it in load(). Appending keeps
+  the old fields at the same place, so load() can upgrade the previous
+  version (see the v2 -> v3 step) instead of throwing everything away.
 
-  IMPORTANT: include this in main.cpp AFTER Buzzer_Player.h and
-  led_Controller_h.h's objects (Buzzer, RingOFLeds) are defined — it
-  reads and writes those globals directly.
+  IMPORTANT: include this in main.cpp AFTER Buzzer_Player.h,
+  Lights/Brightness_Manager.h and Audio/Volume_Manager.h (Buzzer, Brightness,
+  Volume) — it reads and writes those globals directly.
 */
 
 #include <EEPROM.h>
@@ -60,8 +61,16 @@ struct PersistedSettings {
   uint16_t gapBeforeMs; ///< Pre-cue silence gap in ms
   uint16_t gapAfterMs;  ///< Post-cue silence gap in ms
   uint8_t  muted;       ///< Cue mute state (0 = off, 1 = muted; avoids bool size ambiguity)
-  uint8_t  brightness;  ///< Ring LED brightness (0..255)
-  uint8_t  volume;      ///< DFPlayer volume (0..30)
+  uint8_t  ringBrightness; ///< Ring level (0..255) — was `brightness` in v2, same place
+  uint8_t  volume;      ///< Speaker (DFPlayer) level 0..30, before the audio master
+  // ── added in v3 (appended, so v2 data still lines up above) ──
+  uint8_t  stripBrightness;  ///< Strip level (0..255)
+  uint8_t  buttonBrightness; ///< Button LED level (0..255)
+  uint8_t  masterBrightness; ///< Master on top of all levels (0..255, 255 = off)
+  // ── added in v4 ──
+  uint8_t  musicVolume;  ///< Buzzer song level (0..8)
+  uint8_t  cueVolume;    ///< Buzzer UI cue level (0..8)
+  uint8_t  audioMaster;  ///< Audio master in % (0..100) on top of speaker/music/cues
 };
 
 /**
@@ -76,7 +85,7 @@ struct PersistedSettings {
 class SettingsStore {
 public:
   static const uint16_t MAGIC   = 0xD15C;   ///< Sentinel value — "not garbage"
-  static const uint8_t  VERSION = 2;         ///< Bumped: added volume field
+  static const uint8_t  VERSION = 4;         ///< v3: strip/button/master brightness, v4: buzzer volumes + audio master
 
   /**
    * @brief Read flash and apply the stored settings to Buzzer and RingOFLeds.
@@ -88,23 +97,46 @@ public:
     PersistedSettings d;
     EEPROM.get(0, d);
 
-    if (d.magic != MAGIC || d.version != VERSION) {
+    if (d.magic != MAGIC || d.version < 2 || d.version > VERSION) {
       Logger::log("Settings: nothing saved yet, using + storing defaults");
       save();
       return;
     }
-    
+
+    // Older versions: their fields are still valid (new fields are only ever
+    // APPENDED), only the newer ones are missing -> fill those with defaults.
+    uint8_t oldVersion = d.version;
+    bool upgraded = (oldVersion < VERSION);
+    if (oldVersion < 3) {                  // v3 added strip/button/master brightness
+      d.stripBrightness  = Brightness.level(BrightnessManager::STRIP);
+      d.buttonBrightness = Brightness.level(BrightnessManager::BUTTON);
+      d.masterBrightness = 255;
+    }
+    if (oldVersion < 4) {                  // v4 added buzzer volumes + audio master
+      d.musicVolume = Volume.level(VolumeManager::MUSIC);
+      d.cueVolume   = Volume.level(VolumeManager::CUES);
+      d.audioMaster = Volume.master();
+    }
+
+
     Buzzer.setCuePack(d.cuePackIndex);
     Buzzer.setCueGap(d.gapBeforeMs, d.gapAfterMs);
     Buzzer.setMuted(d.muted != 0);
-    RingOFLeds.setBrightness(d.brightness);
-#ifdef DFPLAYERCONTROLLER_H
-    DFPlayer.setVolume(d.volume);
-#endif
+    Brightness.setAll(d.ringBrightness, d.stripBrightness, d.buttonBrightness, d.masterBrightness);
+    Volume.setAll(d.volume, d.musicVolume, d.cueVolume, d.audioMaster);
 
-    Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, brightness %d, vol %d)",
+    Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, vol %d)",
                 Buzzer.cuePackName(), d.gapBeforeMs, d.gapAfterMs,
-                d.muted ? "muted" : "on", d.brightness, d.volume);
+                d.muted ? "muted" : "on", d.volume);
+    Logger::log("Settings: brightness ring %d, strip %d, button %d, master %d",
+                d.ringBrightness, d.stripBrightness, d.buttonBrightness, d.masterBrightness);
+    Logger::log("Settings: volume speaker %d, music %d, cues %d, master %d%%",
+                d.volume, d.musicVolume, d.cueVolume, d.audioMaster);
+
+    if (upgraded) {
+      Logger::log("Settings: upgraded saved data v%d -> v%d", oldVersion, VERSION);
+      save();
+    }
   }
 
   /**
@@ -122,19 +154,21 @@ public:
     d.gapBeforeMs  = Buzzer.cueGapBefore();
     d.gapAfterMs   = Buzzer.cueGapAfter();
     d.muted        = Buzzer.isMuted() ? 1 : 0;
-    d.brightness   = RingOFLeds.getBrightness();
-#ifdef DFPLAYERCONTROLLER_H
-    d.volume       = DFPlayer.volume();
-#else
-    d.volume       = 0;
-#endif
+    d.ringBrightness   = Brightness.level(BrightnessManager::RING);
+    d.stripBrightness  = Brightness.level(BrightnessManager::STRIP);
+    d.buttonBrightness = Brightness.level(BrightnessManager::BUTTON);
+    d.masterBrightness = Brightness.master();
+    d.volume       = Volume.level(VolumeManager::SPEAKER);
+    d.musicVolume  = Volume.level(VolumeManager::MUSIC);
+    d.cueVolume    = Volume.level(VolumeManager::CUES);
+    d.audioMaster  = Volume.master();
 
     EEPROM.put(0, d);   // only actually rewrites bytes that changed
     Logger::log("Settings: saved");
   }
 };
 
-// The one global store, wired to the global Buzzer / RingOFLeds objects.
+// The one global store, wired to the global Buzzer / Brightness objects.
 SettingsStore Persist;
 
 #endif // SETTINGS_STORE_H

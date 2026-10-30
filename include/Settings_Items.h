@@ -51,7 +51,7 @@ public:
   virtual ~SettingItem() {}
 
   /// @brief Returns the name of the setting, which is shown in the log. This method must be overridden by derived classes to provide the specific name of the setting.
-  /// @return The name of the setting as a C-style string. 
+  /// @return The name of the setting as a C-style string.
   virtual const char* name() const = 0;   // shown in the log
 
   // Called the instant this becomes the selected setting (SP/TP just
@@ -82,34 +82,40 @@ protected:
 
 
 /* ================================================================
-   Ring brightness
+   Light brightness (ring, strip) — see Lights/Brightness_Manager.h
    ================================================================ */
 /**
- * @brief Setting that steps the WS2812 ring brightness in ~15 increments.
+ * @brief Setting that steps ONE light's own brightness level in ~15 increments.
  *
- * Each SP bump increases brightness by 17 (≈ 255/15 steps), wrapping back
- * to 0 past maximum. Value is persisted immediately via Persist.save().
+ * Each SP bump adds 17 (≈ 255/15), wrapping back to 0 past maximum. Changes
+ * the light's LEVEL; the master brightness (CLI only, not in this menu) is
+ * applied on top. Value is persisted immediately via Persist.save().
  */
-class BrightnessSetting : public SettingItem {
+class LightBrightnessSetting : public SettingItem {
 public:
-  const char* name() const override { return "brightness"; }
+  LightBrightnessSetting(BrightnessManager::Light light, const char* name)
+    : _light(light), _name(name) {}
+
+  const char* name() const override { return _name; }
 
   void bump() override {
-    uint16_t v = (uint16_t)RingOFLeds.getBrightness() + STEP;
-    if (v > 255) v = 0;             // wrap past max back to off
-    RingOFLeds.setBrightness((uint8_t)v);
-    RingOFLeds.show();
+    Brightness.stepLevel(_light);
     Persist.save();
     logValue();
   }
 
 protected:
   void logValue() const override {
-    Logger::log("Settings: brightness = %d", RingOFLeds.getBrightness());
+    if (Brightness.master() == 255)
+      Logger::log("Settings: %s = %d", _name, Brightness.level(_light));
+    else
+      Logger::log("Settings: %s = %d (shown at %d, master %d)", _name,
+                  Brightness.level(_light), Brightness.effective(_light), Brightness.master());
   }
 
 private:
-  static const uint8_t STEP = 17;   // ~15 steps end to end
+  BrightnessManager::Light _light;
+  const char*              _name;
 };
 
 
@@ -190,22 +196,47 @@ public:
   const char* name() const override { return "volume"; }
 
   void bump() override {
-    uint8_t v = DFPlayer.volume() + STEP;
-    if (v > 30) v = 0;
-    DFPlayer.setVolume(v);
+    Volume.stepLevel(VolumeManager::SPEAKER, STEP);   // audio master applied on top
     Persist.save();
     logValue();
   }
 
 protected:
   void logValue() const override {
-    Logger::log("Settings: volume = %d", DFPlayer.volume());
+    Logger::log("Settings: volume = %d", Volume.level(VolumeManager::SPEAKER));
   }
 
 private:
   static const uint8_t STEP = 2;  // 16 steps: 0, 2, 4, … 30
 };
 #endif // DFPLAYERCONTROLLER_H
+
+
+/* ================================================================
+   Cue volume (buzzer UI cues, 0..8 — see Audio/Volume_Manager.h)
+   ================================================================ */
+/**
+ * @brief Setting that steps the UI cue loudness 0..8, wrapping back to 0.
+ *
+ * The cue played after the bump (double-click) already uses the new level,
+ * so you hear the result at once. 0 = cues silent (like mute).
+ * Value is persisted immediately via Persist.save().
+ */
+class CueVolumeSetting : public SettingItem {
+public:
+  const char* name() const override { return "cue volume"; }
+
+  void bump() override {
+    Volume.stepLevel(VolumeManager::CUES, 1);
+    Persist.save();
+    logValue();
+  }
+
+protected:
+  void logValue() const override {
+    Logger::log("Settings: cue volume = %d/%d", Volume.level(VolumeManager::CUES), SPEAKER_MAX_VOLUME);
+  }
+};
 
 
 /* ================================================================
@@ -261,15 +292,19 @@ private:
    The actual setting instances + the menu.
    To add a setting: create an instance, add it to SETTINGS_LIST.
    ================================================================ */
-BrightnessSetting settingBrightness;
+LightBrightnessSetting settingBrightness(BrightnessManager::RING,  "ring brightness");
+LightBrightnessSetting settingStripBrightness(BrightnessManager::STRIP, "strip brightness");
 CueMuteSetting    settingMute;
+CueVolumeSetting  settingCueVolume;
 CueThemeSetting   settingTheme;
 #ifdef DFPLAYERCONTROLLER_H
 VolumeSetting     settingVolume;
-SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingVolume, &settingMute, &settingTheme };
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingVolume, &settingCueVolume, &settingMute, &settingTheme };
 #else
-SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingMute, &settingTheme };
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingCueVolume, &settingMute, &settingTheme };
 #endif
+// The MASTER brightness is deliberately NOT in this list — set it from the
+// CLI / code with Brightness.setMaster(v); Persist.save();
 SettingsMenu SettingsList(SETTINGS_LIST, sizeof(SETTINGS_LIST) / sizeof(SETTINGS_LIST[0]));
 
 #endif // SETTINGS_ITEMS_H

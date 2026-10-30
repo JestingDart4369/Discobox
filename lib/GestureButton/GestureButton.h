@@ -56,7 +56,7 @@ public:
   uint16_t DEBOUNCE_MS  = 25;    // ignore contact bounce shorter than this
   uint16_t CLICK_GAP_MS = 400;   // max pause between clicks of a multi-click
   uint16_t HOLD_MS      = 3000;  // press this long to trigger the hold gesture
-  
+
   /// @brief Updates the button state based on the current time.
   /// @param now The current time in milliseconds.
   void update(unsigned long now) {

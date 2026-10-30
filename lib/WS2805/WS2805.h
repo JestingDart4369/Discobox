@@ -96,8 +96,10 @@ public:
    * @brief Encode and send a pixel buffer to the strip.
    * @param pixels Pointer to the RGBCCT pixel array.
    * @param count  Number of pixels to send (must match the physical IC count).
+   * @param brightness Global scale 0..255 applied to every channel while encoding
+   *                   (the pixel buffer itself is never changed).
    */
-  void show(const RGBCCT* pixels, uint16_t count) {
+  void show(const RGBCCT* pixels, uint16_t count, uint8_t brightness = 255) {
     static uint8_t _buf[(WS2805_N_LEDS + LEAD) * PIXEL_BYTES + RESET_BYTES];
 
     uint16_t pos = 0;
@@ -111,6 +113,8 @@ public:
     for (uint16_t i = start; i < count; i++) {
       // Wire order: R, G, B, W1 (WW), W2 (CW) — high bit first (datasheet)
       uint8_t ch[5] = {pixels[i].g, pixels[i].r, pixels[i].b, pixels[i].ww, pixels[i].cw };
+      if (brightness != 255)
+        for (uint8_t c = 0; c < 5; c++) ch[c] = (uint8_t)((uint16_t)ch[c] * brightness / 255);
       for (uint8_t c = 0; c < 5; c++) encodeChannel(ch[c], &_buf[pos + c * 4]);
       pos += PIXEL_BYTES;
     }
@@ -174,7 +178,9 @@ private:
  * @tparam Led_Number  Number of WS2805 pixels on the physical strip.
  *
  * Brightness (inherited _brightness from LEDBase) is applied to all channels
- * at every set-call, matching the behaviour of the ARGB<> class.
+ * when the frame is SENT (show()), like FastLED does for the ring. The pixel
+ * buffer keeps the full colours, so setBrightness() + show() changes the
+ * strip immediately and going dark → bright again loses nothing.
  *
  * Optional Logger support: if Logger.h was included (anywhere before this
  * file), WS2805 logs setup via Logger::log(); otherwise it stays silent.
@@ -198,18 +204,33 @@ public:
   // ── Core ──────────────────────────────────────────────────
 
   /** @brief Push the internal pixel buffer to the strip. */
-  void show() override { _driver.show(_leds, Led_Number); }
+  void show() override { _driver.show(_leds, Led_Number, _brightness); }
 
   /** @brief Set all pixels to off in the buffer (no show). */
   void clear() override {
     for (uint16_t i = 0; i < Led_Number; i++) _leds[i] = RGBCCT();
   }
 
+  /**
+   * @brief Read one pixel back from the buffer — the colour as SET, without brightness.
+   * Out of range -> all off.
+   */
+  RGBCCT pixel(uint16_t i) const { return (i < Led_Number) ? _leds[i] : RGBCCT(); }
+
+  /**
+   * @brief The pixel as it is SENT to the strip (brightness applied).
+   * Used by test/test_hw_strip. Out of range -> all off.
+   */
+  RGBCCT shown(uint16_t i) const {
+    RGBCCT p = pixel(i);
+    return RGBCCT(_sc(p.r), _sc(p.g), _sc(p.b), _sc(p.cw), _sc(p.ww));
+  }
+
   // ── Set all ───────────────────────────────────────────────
 
-  /** @brief Set all LEDs to an RGB colour (brightness-scaled) and show. */
+  /** @brief Set all LEDs to an RGB colour and show (brightness applied in show()). */
   void setToColor(uint8_t r, uint8_t g, uint8_t b) override {
-    RGBCCT c = _scaled(r, g, b, 0, 0);
+    RGBCCT c(r, g, b, 0, 0);
     for (uint16_t i = 0; i < Led_Number; i++) _leds[i] = c;
     show();
   }
@@ -219,14 +240,14 @@ public:
    * Extra method beyond the LEDBase API — use when you want CW/WW.
    */
   void setToColorCCT(uint8_t r, uint8_t g, uint8_t b, uint8_t cw, uint8_t ww) {
-    RGBCCT c = _scaled(r, g, b, cw, ww);
+    RGBCCT c(r, g, b, cw, ww);
     for (uint16_t i = 0; i < Led_Number; i++) _leds[i] = c;
     show();
   }
 
   /** @brief Set all LEDs to warm-white and show. @param brightness WW channel (0–255). */
   void setAllWW(uint8_t brightness = 255) {
-    uint8_t ww = _sc(brightness);
+    uint8_t ww = brightness;
     RGBCCT c(ww / 8, 0, 0, 0, ww);
     for (uint16_t i = 0; i < Led_Number; i++) _leds[i] = c;
     show();
@@ -234,7 +255,7 @@ public:
 
   /** @brief Set all LEDs to cold-white and show. @param brightness CW channel (0–255). */
   void setAllCW(uint8_t brightness = 255) {
-    uint8_t cw = _sc(brightness);
+    uint8_t cw = brightness;
     RGBCCT c(0, 0, 0, cw, 0);
     for (uint16_t i = 0; i < Led_Number; i++) _leds[i] = c;
     show();
@@ -250,7 +271,7 @@ public:
     for (uint16_t i = 0; i < Led_Number; i++) {
       sr[i] = _leds[i].r; sg[i] = _leds[i].g; sb[i] = _leds[i].b;
     }
-    uint8_t tr = _sc(r), tg = _sc(g), tb = _sc(b);
+    uint8_t tr = r, tg = g, tb = b;
     for (uint16_t s = 1; s <= steps; s++) {
       uint8_t amt = (uint16_t)(s * 255) / steps;
       for (uint16_t i = 0; i < Led_Number; i++) {
@@ -268,7 +289,7 @@ public:
   /** @brief Set a single LED to an RGB colour (buffer only). Out-of-range silently ignored. */
   void setToColorSingle(uint8_t i, uint8_t r, uint8_t g, uint8_t b) override {
     if (i >= Led_Number) return;
-    _leds[i] = _scaled(r, g, b, 0, 0);
+    _leds[i] = RGBCCT(r, g, b, 0, 0);
   }
 
   /** @brief Blocking fade of a single LED to an RGB colour. CW/WW zeroed. */
@@ -276,7 +297,7 @@ public:
                          uint16_t steps = 30, uint16_t frame_delay_ms = 20) override {
     if (i >= Led_Number) return;
     uint8_t sr = _leds[i].r, sg = _leds[i].g, sb = _leds[i].b;
-    uint8_t tr = _sc(r), tg = _sc(g), tb = _sc(b);
+    uint8_t tr = r, tg = g, tb = b;
     for (uint16_t s = 1; s <= steps; s++) {
       uint8_t amt = (uint16_t)(s * 255) / steps;
       _leds[i].r = sr + ((int16_t)(tr - sr) * amt / 255);
@@ -292,7 +313,7 @@ public:
   /** @brief LED-by-LED wipe: each LED fades to the target before the next starts. */
   void wipeToColor(uint8_t r, uint8_t g, uint8_t b,
                    uint16_t fade_steps = 15, uint16_t frame_delay_ms = 15) override {
-    uint8_t tr = _sc(r), tg = _sc(g), tb = _sc(b);
+    uint8_t tr = r, tg = g, tb = b;
     for (uint16_t i = 0; i < Led_Number; i++) {
       uint8_t sr = _leds[i].r, sg = _leds[i].g, sb = _leds[i].b;
       for (uint16_t s = 1; s <= fade_steps; s++) {
@@ -312,7 +333,7 @@ public:
   void stepDisco() override {
     for (uint16_t i = 0; i < Led_Number; i++) {
       CRGB c = LedUtil::hsvToRgb(_rnd8(), 255, 255);
-      _leds[i] = RGBCCT(_sc(c.r), _sc(c.g), _sc(c.b), 0, 0);
+      _leds[i] = RGBCCT(c.r, c.g, c.b, 0, 0);
     }
   }
 
@@ -343,7 +364,7 @@ public:
         _flickCurrent[i] = min(255, _flickCurrent[i] + step);
       else
         _flickCurrent[i] = max(0,   _flickCurrent[i] - step);
-      uint8_t ww = _sc(_flickCurrent[i]);
+      uint8_t ww = _flickCurrent[i];
       _leds[i] = RGBCCT(ww / 8, 0, 0, 0, ww);
     }
     show();
@@ -362,13 +383,8 @@ private:
   uint8_t  _rnd8() { return (uint8_t)(_rndNext() >> 24); }
   long     _rndRange(long lo, long hi) { return lo + (long)(_rndNext() % (uint32_t)(hi - lo)); }
 
-  /** @brief Scale a value by the current global brightness. */
+  /** @brief Scale a value by the current global brightness (same maths as the driver). */
   uint8_t _sc(uint8_t v) const { return (uint16_t)v * _brightness / 255; }
-
-  /** @brief Apply brightness scaling to all five channels and return a pixel. */
-  RGBCCT _scaled(uint8_t r, uint8_t g, uint8_t b, uint8_t cw, uint8_t ww) const {
-    return RGBCCT(_sc(r), _sc(g), _sc(b), _sc(cw), _sc(ww));
-  }
 };
 
 #endif // LED_CONTROLLER_H

@@ -1,0 +1,35 @@
+# EditorConfig — same formatting in every editor / extension (https://editorconfig.org)
+# Applies to NEW edits only; existing files are not reformatted.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# C / C++ (src, include, lib, test)
+[*.{c,cpp,h,hpp,ino}]
+indent_size = 2
+
+# platformio.ini and other ini files
+[*.ini]
+indent_size = 2
+
+# Markdown: trailing spaces can be a deliberate line break
+[*.md]
+trim_trailing_whitespace = false
+
+# Python helper scripts (doc/sound/songs/convert_song.py)
+[*.py]
+indent_size = 4
+
+# PlantUML diagrams
+[*.puml]
+indent_size = 2
+
+# Makefiles need real tabs
+[Makefile]
+indent_style = tab

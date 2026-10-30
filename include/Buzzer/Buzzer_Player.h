@@ -196,6 +196,7 @@ public:
     _started = true;
     _ducking = false;
     Logger::log("Buzzer: playing %s", songName());
+    _spk.setVolume(_musicVolume);
     _spk.play(SONGLIST[_index].notes, SONGLIST[_index].count);
   }
 
@@ -267,6 +268,7 @@ public:
 
   void playCue(uint8_t id) {
     if (_cue_muted) return;              // muted: no sound, song (if any) untouched
+    if (_cueVolume == 0) return;         // volume 0 behaves like muted
     if (id >= UISFX_CUE_COUNT) return;
 
     if (_spk.isPlaying() && !_ducking) {
@@ -368,6 +370,23 @@ public:
   /** @brief Toggle the mute state of UI cues. */
   void toggleMute()    { setMuted(!_cue_muted); }
 
+  // ---- Volume (0..SPEAKER_MAX_VOLUME, 0 = silent) ----
+  // Set by VolumeManager (Audio/Volume_Manager.h), which applies the audio
+  // master on top — use Volume.setLevel(...) from outside, not these directly.
+
+  /** @brief Loudness for songs. Applied at once if a song is sounding. */
+  void setMusicVolume(uint8_t v) {
+    _musicVolume = v;
+    if (!_ducking) _spk.setVolume(v);
+  }
+  /** @brief Loudness for UI cues. Applied at once if a cue is sounding. */
+  void setCueVolume(uint8_t v) {
+    _cueVolume = v;
+    if (_ducking) _spk.setVolume(v);
+  }
+  uint8_t musicVolume() const { return _musicVolume; }
+  uint8_t cueVolume()   const { return _cueVolume; }
+
   // ---- Info ----
   /** @brief Returns true while a song or cue is playing. */
   bool        isPlaying() const { return _spk.isPlaying(); }
@@ -398,6 +417,10 @@ private:
   // mute state (cues only — see setMuted() above)
   bool _cue_muted = false;
 
+  // loudness (see setMusicVolume / setCueVolume)
+  uint8_t _musicVolume = SPEAKER_MAX_VOLUME;
+  uint8_t _cueVolume   = SPEAKER_MAX_VOLUME;
+
   // quiet-gap state (see setCueGap())
   static const uint8_t NO_PENDING_CUE = 0xFF;
   uint16_t      _gap_before_ms   = 0;      // silence before a cue starts
@@ -424,12 +447,14 @@ private:
   void startCueNow(uint8_t id) {
     const UiSfxCue& cue = UISFX_CUES[id];
     buildTransposed(cue);
+    _spk.setVolume(_cueVolume);
     _spk.play(_cue_buf, cue.count);
   }
 
   /** @brief Called when a cue (and its post-gap) have finished. Resumes any song that was paused for the cue. */
   void resumeAfterCue() {
     _ducking = false;
+    _spk.setVolume(_musicVolume);
     if (_song_paused) {
       _song_paused = false;
       _spk.playFrom(SONGLIST[_index].notes, SONGLIST[_index].count, _song_offset_ms);
