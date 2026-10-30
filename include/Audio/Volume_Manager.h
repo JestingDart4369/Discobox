@@ -28,8 +28,17 @@
     uint8_t heard = Volume.effective(VolumeManager::SPEAKER);
 
   IMPORTANT: include in main.cpp AFTER Buzzer (Buzzer_Player.h) and DFPlayer
-  exist, and BEFORE Storage/Settings_Store.h.
+  exist, and BEFORE Storage/Settings_Store.h. The global `Buzzer` needs the
+  `speaker` object from main.cpp, so it can't be included from here — a wrong
+  order stops the build with the #error below instead of cryptic follow-ups.
+  Without DFPlayerController.h (no MP3 module) the SPEAKER channel is kept but
+  simply drives nothing.
 */
+#include <SongPlayer.h>        // SPEAKER_MAX_VOLUME
+
+#ifndef BUZZER_PLAYER_H
+  #error "Include Buzzer/Buzzer_Player.h (after the `speaker` object) before Audio/Volume_Manager.h"
+#endif
 
 class VolumeManager {
 public:
@@ -98,7 +107,11 @@ private:
 
   void apply(Channel c) {
     switch (c) {
-      case SPEAKER: DFPlayer.setVolume(effective(SPEAKER)); break;
+      case SPEAKER:
+#ifdef DFPLAYERCONTROLLER_H
+        DFPlayer.setVolume(effective(SPEAKER));
+#endif
+        break;
       case MUSIC:   Buzzer.setMusicVolume(effective(MUSIC)); break;
       case CUES:    Buzzer.setCueVolume(effective(CUES));    break;
       default: break;

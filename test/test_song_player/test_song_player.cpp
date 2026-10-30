@@ -205,6 +205,62 @@ void test_duty_table_loud_to_quiet() {
     TEST_ASSERT_TRUE(SPEAKER_DUTY[i] > SPEAKER_DUTY[i - 1]);    // strictly louder per level
 }
 
+// ── note off around the 32-bit millis() wrap (Copilot review) ───────────────
+void test_note_not_cut_before_wrap() {
+  // A 200 ms note that starts 100 ms before the 32-bit wrap must still be
+  // sounding 50 ms before the wrap and 50 ms after it — and stop at its end.
+  static const SongNote LONG_NOTE[] = { { 60, 200, 0 } };
+  speakerController spk(SPK_PIN);
+  mock_set_millis(0xFFFFFFFFUL - 99);             // 100 ms before the wrap
+  spk.play(LONG_NOTE, 1);
+  spk.step();                                     // note on, off at start + 200
+  TEST_ASSERT_TRUE(spk.isSounding());
+
+  mock_set_millis(0xFFFFFFFFUL - 49);             // 50 ms before the wrap
+  spk.step();
+  TEST_ASSERT_TRUE_MESSAGE(spk.isSounding(), "note cut off before the wrap");
+
+  mock_set_millis(0xFFFFFFFFUL + 51UL);           // 50 ms after (64-bit host keeps counting)
+  spk.step();
+  TEST_ASSERT_TRUE_MESSAGE(spk.isSounding(), "note cut off right after the wrap");
+
+  mock_set_millis(0xFFFFFFFFUL + 102UL);          // past the 200 ms
+  spk.step();
+  TEST_ASSERT_FALSE_MESSAGE(spk.isSounding(), "note did not stop after its duration");
+}
+
+// ── playTone (Copilot review) ───────────────────────────────────────────────
+void test_play_tone_stops_after_duration_with_step() {
+  speakerController spk(SPK_PIN);
+  mock_set_millis(1000);
+  spk.playTone(440, 500);
+  TEST_ASSERT_TRUE(spk.isSounding());
+  mock_set_millis(1499);
+  spk.step();
+  TEST_ASSERT_TRUE(spk.isSounding());
+  mock_set_millis(1500);
+  spk.step();
+  TEST_ASSERT_FALSE(spk.isSounding());
+}
+
+void test_play_tone_zero_duration_until_stop() {
+  speakerController spk(SPK_PIN);
+  mock_set_millis(0);
+  spk.playTone(440);                              // 0 = until stopTone()
+  mock_set_millis(100000);
+  spk.step();
+  TEST_ASSERT_TRUE(spk.isSounding());
+  spk.stopTone();
+  TEST_ASSERT_FALSE(spk.isSounding());
+}
+
+void test_play_tone_silent_at_volume_zero() {
+  speakerController spk(SPK_PIN);
+  spk.setVolume(0);
+  spk.playTone(440, 500);
+  TEST_ASSERT_FALSE(spk.isSounding());
+}
+
 int main() {
   UNITY_BEGIN();
 
@@ -230,6 +286,10 @@ int main() {
   RUN_TEST(test_volume_is_clamped);
   RUN_TEST(test_volume_zero_keeps_timing);
   RUN_TEST(test_duty_table_loud_to_quiet);
+  RUN_TEST(test_note_not_cut_before_wrap);
+  RUN_TEST(test_play_tone_stops_after_duration_with_step);
+  RUN_TEST(test_play_tone_zero_duration_until_stop);
+  RUN_TEST(test_play_tone_silent_at_volume_zero);
 
   return UNITY_END();
 }

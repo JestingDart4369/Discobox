@@ -66,7 +66,7 @@ struct PersistedSettings {
   // ── added in v3 (appended, so v2 data still lines up above) ──
   uint8_t  stripBrightness;  ///< Strip level (0..255)
   uint8_t  buttonBrightness; ///< Button LED level (0..255)
-  uint8_t  masterBrightness; ///< Master on top of all levels (0..255, 255 = off)
+  uint8_t  masterBrightness; ///< Master on top of all levels (0..255): shown = level * master / 255 — 255 = no scaling, 0 = all lights off
   // ── added in v4 ──
   uint8_t  musicVolume;  ///< Buzzer song level (0..8)
   uint8_t  cueVolume;    ///< Buzzer UI cue level (0..8)

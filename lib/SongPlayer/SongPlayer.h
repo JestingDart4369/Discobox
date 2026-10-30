@@ -138,6 +138,9 @@ public:
   /** @brief Current loudness 0..SPEAKER_MAX_VOLUME. */
   uint8_t volume() const { return _volume; }
 
+  /** @brief true while a note is actually sounding (between note on and note off). */
+  bool isSounding() const { return _noteOn; }
+
   /** @brief Returns true while a song is in progress. */
   bool isPlaying() const { return _playing; }
 
@@ -152,7 +155,10 @@ public:
    */
   void step() {
     // a note's time is up -> silence (PwmOut has no built-in duration like tone())
-    if (_noteOn && (long)(millis() - _noteOffAt) >= 0) noteOff();
+    // Wrap-safe: both sides as 32 bit, difference as SIGNED 32 bit. A plain
+    // (long) cast is only right where long is 32 bit (Arduino) — on a 64-bit
+    // host (native tests) millis() is 64 bit and the check breaks at the wrap.
+    if (_noteOn && (int32_t)((uint32_t)millis() - _noteOffAt) >= 0) noteOff();
 
     if (!_playing || _notes == nullptr) return;
     uint32_t elapsed = millis() - _start_ms;
@@ -184,9 +190,24 @@ public:
    * @brief Play a raw frequency tone directly (bypasses the song player state).
    * @param frequency Frequency in Hz.
    * @param duration  Duration in ms (0 = plays until stopTone() is called).
+   *
+   * @warning With BUZZER_PWM (the board build) the tone is produced by PwmOut,
+   * which has no built-in duration: the tone stops after `duration` ONLY if
+   * step() keeps being called (the firmware does that every loop() and in
+   * bootWait()). `playTone(440, 500); delay(700);` would keep beeping —
+   * call step() while you wait instead. Without BUZZER_PWM, tone() is used
+   * and stops on its own, exactly like before.
    */
   void playTone(uint16_t frequency, uint32_t duration = 0) {
+#if defined(BUZZER_PWM)
     noteOn(frequency, duration ? duration : 0x7FFFFFFFUL);   // 0 = until stopTone()
+#else
+    if (_volume == 0 || frequency == 0) { noteOff(); return; }
+    if (duration) tone(_pin, frequency, duration);           // stops by itself, no step() needed
+    else          tone(_pin, frequency);                     // until stopTone()
+    _noteOn    = true;                                       // for isSounding(); step() clears it
+    _noteOffAt = (uint32_t)millis() + (duration ? duration : 0x7FFFFFFFUL);
+#endif
   }
 
   /** @brief Stop any tone currently produced by playTone(). */
@@ -235,7 +256,7 @@ private:
     tone(_pin, freq);
 #endif
     _noteOn    = true;
-    _noteOffAt = millis() + ms;
+    _noteOffAt = (uint32_t)millis() + ms;
   }
 
   /** @brief Silence the speaker. Safe to call when nothing is sounding. */

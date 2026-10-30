@@ -10,6 +10,7 @@
 #include <Shell.h>
 #include <FakeShellIO.h>
 #include <string>
+#include <vector>       // std::vector (comparing captured help output)
 #include <string.h>
 
 // ── dummy commands: "strip led <index> <color> [-s|--speed]", "strip clear", "ping" ──

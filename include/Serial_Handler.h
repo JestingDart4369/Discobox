@@ -107,8 +107,7 @@ private:
     if      (strcmp(line, "sp") == 0)   { Logger::log("[serial] SP");   Btn_SP(); }
     else if (strcmp(line, "dp") == 0)   { Logger::log("[serial] DP");   Btn_DP(); }
     else if (strcmp(line, "tp") == 0)   { Logger::log("[serial] TP");   Btn_TP(); }
-    else if (strcmp(line, "hold") == 0 ||
-             strcmp(line, "next") == 0) { Logger::log("[serial] HOLD"); Btn_Hold(); }
+    else if (strcmp(line, "hold") == 0 || strcmp(line, "next") == 0) { Logger::log("[serial] HOLD"); Btn_Hold(); }
 
     // --- direct controls ---
     else if (strncmp(line, "mode ", 5) == 0) {
@@ -605,4 +604,3 @@ private:
 };
 
 #endif // SERIAL_HANDLER_H
-//#The New serialHandler

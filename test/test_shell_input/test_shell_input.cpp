@@ -6,6 +6,7 @@
 #include <Shell.h>
 #include <FakeShellIO.h>
 #include <string.h>
+#include <string>       // std::string (long test lines) — don't rely on FakeShellIO.h
 
 static FakeShellIO* io;
 static LineReader*  reader;

@@ -26,7 +26,10 @@
 
   IMPORTANT: include in main.cpp AFTER RingOFLeds, Strip and RGBButton exist,
   and BEFORE Storage/Settings_Store.h (which saves/loads these values).
+  The class itself only needs LEDBase (included below); only the global
+  `Brightness` at the bottom uses the light objects from main.cpp.
 */
+#include <LedController.h>     // LEDBase
 
 class BrightnessManager {
 public:

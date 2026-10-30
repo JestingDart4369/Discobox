@@ -437,7 +437,8 @@ private:
    * @return true if the deadline has been reached.
    */
   static bool dueBy(unsigned long deadline) {
-    return (long)(millis() - deadline) >= 0;
+    // signed 32-bit difference: wrap-safe on Arduino AND on 64-bit hosts
+    return (int32_t)((uint32_t)millis() - (uint32_t)deadline) >= 0;
   }
 
   /**

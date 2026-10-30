@@ -53,7 +53,11 @@ void test_midi_to_frequency() {
 void test_tone_440_audible() {
   TEST_MESSAGE("You should hear a 440 Hz beep (A4) for 0.5 s");
   speaker.playTone(440, 500);
-  delay(700);
+  // With BUZZER_PWM the tone only stops while step() runs (PwmOut has no
+  // built-in duration) — so step() while waiting instead of delay().
+  unsigned long t0 = millis();
+  while (millis() - t0 < 700) speaker.step();
+  TEST_ASSERT_FALSE_MESSAGE(speaker.isSounding(), "tone still sounding after its 500 ms");
 }
 
 // ── song list ───────────────────────────────────────────────────────────────
