@@ -96,6 +96,8 @@ h1 { font-size:1.1rem; margin:0; color:var(--text); } .filters button { border:2
 .filters button[aria-pressed=true] { background:var(--accent); } .filters .sw { display:inline-block; width:.7rem; height:.7rem; border-radius:50%; margin-right:.35rem; vertical-align:-1px; }
 main { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr); gap:1rem; padding:1rem; }
 @media (max-width:900px) { main { grid-template-columns:1fr; } }
+@media (max-width:600px) { header { padding:.6rem .8rem; } main { padding:.5rem; gap:.6rem; } iframe { height:320px; } .filters button { padding:.4rem .9rem; min-height:40px; } .card { border-radius:18px; } }
+@media (pointer:coarse) { .wire path.hit { stroke-width:26px; } .node, .wire { -webkit-tap-highlight-color:transparent; } }
 .card { background:#fff; border:2px solid var(--accent); border-radius:26px; padding:.6rem; }
 svg { width:100%; height:auto; display:block; } .node rect { fill:#fff; stroke:var(--main); stroke-width:2; rx:12; } .node text { fill:var(--text); font-size:13px; pointer-events:none; } .node .sub { font-size:10.5px; fill:#7e6e56; }
 .node { cursor:pointer; } .node:hover rect, .node:focus rect, .node.sel rect { fill:var(--accent); } .node:focus { outline:none; } .node:focus rect { stroke-width:4; }

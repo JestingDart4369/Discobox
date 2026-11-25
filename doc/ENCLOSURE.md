@@ -185,3 +185,9 @@ I am not an electrician. These are design notes and things to check, not a safet
 
 - **Grille:** each speaker now has a hex-perforated grille (about 120 hexagonal holes, 4.6 mm across, 5.6 mm pitch, solid centre boss and rim) inside a 0.8 mm deep round bezel recess. Every bar is at least 1 mm, so it prints without supports when the front wall is printed vertical or lying on its back.
 - **Shell sides:** rounded vertical corners (R6), a 2 mm chamfer round the top edge, a stepped-in base (bottom 7 mm, 1.2 mm in), three pinstripe grooves (2.4 mm wide, 1.2 mm deep) on the sides and the back, recessed panels around the side vents, and a nameplate recess between the speakers on the front. All details only cut into the outside (at most 1.2 mm of the 3 mm wall), so the frame, the columns and the inside dimensions are unchanged. Tip: print a colour change at the groove heights, or paint the grooves, for the 80s look.
+
+### Viewer on phones and the menu
+- The viewer menu is collapsible: "Hide" closes it, the "Menu" button (top left) opens it again, Esc closes it. On phones (narrow screens) it starts closed and opens as a drawer over the model.
+- Touch: one finger rotates, two fingers pinch to zoom and move, tap the pink button or the big red button for disco mode; buttons and checkboxes get bigger tap targets on touch screens; "Reset" in the View row resets the camera.
+- The drawings-only view keeps the LED ring and the RGB button (with its bezel) besides the wires, electronics, mains compartment, speakers and plugs.
+- The interactive wiring page, the site menu and the embedded viewer pages are responsive (the wiring page stacks the schematic and the 3D view on narrow screens; wires have a wide tap area).

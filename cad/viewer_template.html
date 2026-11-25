@@ -31,18 +31,32 @@
   .box { border: 2px solid var(--accent); border-radius: 18px; padding: 6px 10px; background: #fff; }
   select { width: 100%; border: 2px solid var(--main); border-radius: 999px; padding: 4px 8px; background: #fff; }
   #discoBtn { width: 100%; padding: 10px !important; font-size: 15px !important; font-weight: 700; margin: 6px 0 0 !important; }
+  #side { transition: margin-left .25s ease, transform .25s ease; }
+  #wrap.collapsed #side { margin-left: -340px; }
+  #menuBtn { display: none; position: absolute; left: 10px; top: 8px; z-index: 4; padding: 7px 16px; border: 2px solid var(--main); background: #fff; color: var(--main); border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+  #wrap.collapsed #menuBtn { display: block; } #menuBtn:focus-visible, #menuClose:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+  @media (max-width: 760px) {
+    #side { position: absolute; left: 0; top: 0; bottom: 0; width: min(88vw, 340px); z-index: 6; box-shadow: 4px 0 0 var(--pink), 8px 0 0 var(--cyan), 12px 0 28px #0005; -webkit-overflow-scrolling: touch; }
+    #wrap.collapsed #side { margin-left: 0; transform: translateX(-120%); box-shadow: none; }
+    #hint { left: 6px; right: 6px; bottom: 6px; font-size: 11px; text-align: center; border-radius: 14px; }
+    #info { top: 52px; right: 6px; font-size: 11px; }
+  }
+  @media (pointer: coarse) {
+    #side button, select { min-height: 40px; } label { padding: 6px 0; } input[type=checkbox] { width: 22px; height: 22px; } details label { padding-left: 28px; }
+    #menuBtn { padding: 10px 18px; font-size: 15px; }
+  }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
 <div id="wrap">
   <div id="side">
-    <h1>Discobox 3D viewer</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1 style="margin:0">Discobox 3D viewer</h1><button id="menuClose" type="button" aria-label="Hide menu" style="margin:0">&#10005; Hide</button></div>
     <div class="tabs" id="tabs"></div>
     <div id="note"></div>
     <h2>View</h2>
     <div class="views">
-      <button data-v="iso">Iso</button><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="top">Top</button><button data-v="back">Back</button>
+      <button data-v="iso">Iso</button><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="top">Top</button><button data-v="back">Back</button><button id="resetView" type="button">Reset</button>
     </div>
     <h2>Shell see-through</h2>
     <input type="range" id="shellAlpha" min="0.1" max="1" step="0.05" value="1">
@@ -66,7 +80,7 @@
     <div style="margin-bottom:4px"><button id="allOn">all on</button> <button id="allOff">all off</button></div>
     <div id="groups"></div>
   </div>
-  <div id="view"><canvas id="c"></canvas><canvas id="fx"></canvas><div id="hint">drag = rotate · right-drag / shift-drag = move · wheel = zoom · double-click = reset</div><div id="info"></div></div>
+  <div id="view"><button id="menuBtn" type="button" aria-controls="side" aria-expanded="true">&#9776; Menu</button><canvas id="c"></canvas><canvas id="fx"></canvas><div id="hint">drag = rotate · right-drag / shift-drag = move · wheel = zoom · double-click = reset</div><div id="info"></div></div>
 </div>
 <script>
 /*__DATA__*/
@@ -180,9 +194,17 @@ Object.keys(ADD).forEach(k => $(k).onchange = applySettings); $("setInter").onch
 $("preNo").onclick = () => { Object.keys(ADD).forEach(k => $(k).checked = false); applySettings(); };
 $("preCab").onclick = () => { $("setTable").checked = true; Object.keys(ADD).forEach(k => $(k).checked = true); applySettings(); };
 const KEEP = ["Wires", "Electronics", "Mains compartment", "Speakers", "Plugs (not printed)"];
+const DRAW_PARTS = ["rp_tilted_led_ring_block", "rp_tilted_button_cap", "rp_tilted_button_collar"];     // the LED ring and the RGB button stay in the drawings view
+let drawVis = null;
+function syncPart(name, on) { visible[name] = on; document.querySelectorAll("#groups label").forEach(l => { if (l.textContent === name) l.querySelector("input").checked = on; }); }
 $("setDraw").onchange = e => {
-  if (e.target.checked) { drawSnap = Object.assign({}, groupsOn); Object.keys(groupsOn).forEach(g => syncGroup(g, KEEP.includes(g))); }
-  else if (drawSnap) { Object.keys(drawSnap).forEach(g => syncGroup(g, drawSnap[g])); drawSnap = null; }
+  if (e.target.checked) {
+    drawSnap = Object.assign({}, groupsOn); drawVis = Object.assign({}, visible);
+    Object.keys(groupsOn).forEach(g => syncGroup(g, KEEP.includes(g) || g === "Record head"));
+    parts.filter(p => p.group === "Record head").forEach(p => syncPart(p.name, DRAW_PARTS.includes(p.name)));
+  } else if (drawSnap) {
+    Object.keys(drawSnap).forEach(g => syncGroup(g, drawSnap[g])); Object.keys(drawVis).forEach(n => syncPart(n, drawVis[n])); drawSnap = null; drawVis = null;
+  }
 };
 function initSettings(src) { $("settings").hidden = !src.addons; $("setDraw").checked = false; drawSnap = null; $("setInter").checked = true; $("setTable").checked = false; Object.keys(ADD).forEach(k => $(k).checked = false); if (src.addons) applySettings(); else $("discobox").hidden = true; }
 function hsv(h, s, v) { const f = n => { const k = (n + h * 6) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); }; return [f(5), f(3), f(1)]; }   // used by the disco colour cycling
@@ -252,29 +274,53 @@ const tabs = document.getElementById("tabs");
 VERSIONS.forEach(v => { const b = document.createElement("button"); b.textContent = v.label; b.dataset.id = v.id; b.onclick = () => loadVersion(v); tabs.append(b); });
 document.getElementById("allOn").onclick = () => setAll(true); document.getElementById("allOff").onclick = () => setAll(false);
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => { const v = VIEWS[b.dataset.v]; cam.yaw = v[0]; cam.pitch = v[1]; });
-let drag = null;
-canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
-let down = null;
-canvas.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; }, true);
-canvas.addEventListener("pointerup", e => {
-  if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 4 && interactive && !$("settings").hidden && lastMvp) {
-    const m = lastMvp, r = canvas.getBoundingClientRect();
-    for (const [name, rad] of [["rp_tilted_button_cap", 34], ["plug_big_red_button_dome", 70]]) {     // pink button on the record, big red button on its cable
-      const pt = parts.find(p => p.name === name); if (!pt || !groupsOn[pt.group] || !visible[pt.name]) continue; const b = bbox(new Set([name])); if (!b) continue;
-      const c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2];
-      const x = m[0]*c[0]+m[4]*c[1]+m[8]*c[2]+m[12], y = m[1]*c[0]+m[5]*c[1]+m[9]*c[2]+m[13], w = m[3]*c[0]+m[7]*c[1]+m[11]*c[2]+m[15];
-      const sx = r.left + (x / w * 0.5 + 0.5) * r.width, sy = r.top + (1 - (y / w * 0.5 + 0.5)) * r.height;
-      const k = (r.height / 700) * (900 / cam.dist);                                               // button radius scales with zoom
-      if (Math.hypot(e.clientX - sx, e.clientY - sy) < Math.max(18, rad * k)) { press(); break; }
-    } }
-  down = null; drag = null; });
+let drag = null, down = null, pinch = null; const ptrs = new Map();
+function pickAt(e) {                                                  // tap / click on the pink button or the big red button toggles the disco
+  if (!(interactive && !$("settings").hidden && lastMvp)) return;
+  const m = lastMvp, r = canvas.getBoundingClientRect(), touch = e.pointerType === "touch";
+  for (const [name, rad] of [["rp_tilted_button_cap", 34], ["plug_big_red_button_dome", 70]]) {
+    const pt = parts.find(p => p.name === name); if (!pt || !groupsOn[pt.group] || !visible[pt.name]) continue; const b = bbox(new Set([name])); if (!b) continue;
+    const c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2];
+    const x = m[0]*c[0]+m[4]*c[1]+m[8]*c[2]+m[12], y = m[1]*c[0]+m[5]*c[1]+m[9]*c[2]+m[13], w = m[3]*c[0]+m[7]*c[1]+m[11]*c[2]+m[15];
+    const sx = r.left + (x / w * 0.5 + 0.5) * r.width, sy = r.top + (1 - (y / w * 0.5 + 0.5)) * r.height, k = (r.height / 700) * (900 / cam.dist);
+    if (Math.hypot(e.clientX - sx, e.clientY - sy) < Math.max(touch ? 30 : 18, rad * k)) { press(); break; }
+  }
+}
+canvas.addEventListener("pointerdown", e => {
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]); canvas.setPointerCapture(e.pointerId);
+  if (ptrs.size === 1) { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; down = [e.clientX, e.clientY]; pinch = null; }
+  else if (ptrs.size === 2) { const [p, q] = [...ptrs.values()]; pinch = { d: Math.hypot(p[0] - q[0], p[1] - q[1]) || 1, cx: (p[0] + q[0]) / 2, cy: (p[1] + q[1]) / 2 }; drag = null; down = null; }
+});
+function endPtr(e) {
+  const wasTap = down && ptrs.size === 1 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < (e.pointerType === "touch" ? 10 : 4);
+  if (wasTap && e.type === "pointerup") pickAt(e);
+  ptrs.delete(e.pointerId); down = null;
+  if (ptrs.size < 2) pinch = null;
+  if (ptrs.size === 1) { const [p] = [...ptrs.values()]; drag = { x: p[0], y: p[1], pan: false }; } else if (ptrs.size === 0) drag = null;
+}
+canvas.addEventListener("pointerup", endPtr); canvas.addEventListener("pointercancel", endPtr);
 canvas.addEventListener("pointermove", e => {
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pinch && ptrs.size >= 2) {                                      // two fingers: pinch = zoom, moving both = pan
+    const [p, q] = [...ptrs.values()], d = Math.hypot(p[0] - q[0], p[1] - q[1]) || 1, cx = (p[0] + q[0]) / 2, cy = (p[1] + q[1]) / 2;
+    cam.dist = Math.max(120, Math.min(3000, cam.dist * pinch.d / d));
+    const k = cam.dist * 0.0012, dx = cx - pinch.cx, dy = cy - pinch.cy; cam.tx -= Math.cos(cam.yaw) * dx * k; cam.ty -= Math.sin(cam.yaw) * dx * k; cam.tz += dy * k;
+    pinch.d = d; pinch.cx = cx; pinch.cy = cy; return;
+  }
   if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
   if (drag.pan) { const k = cam.dist * 0.0012; cam.tx -= (Math.cos(cam.yaw) * dx) * k; cam.ty -= (Math.sin(cam.yaw) * dx) * k; cam.tz += dy * k; }
   else { cam.yaw -= dx * 0.008; cam.pitch = Math.max(-1.55, Math.min(1.55, cam.pitch + dy * 0.008)); }
 });
 canvas.addEventListener("wheel", e => { e.preventDefault(); cam.dist *= Math.exp(e.deltaY * 0.001); cam.dist = Math.max(120, Math.min(3000, cam.dist)); }, { passive: false });
 canvas.addEventListener("dblclick", resetCam); canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+// ---------- collapsible menu (closed by default on phones) ----------
+function setMenu(open) { $("wrap").classList.toggle("collapsed", !open); $("menuBtn").setAttribute("aria-expanded", open); }
+$("menuBtn").onclick = () => setMenu(true); $("menuClose").onclick = () => setMenu(false);
+$("resetView") && ($("resetView").onclick = resetCam);
+if (innerWidth < 760) setMenu(false);
+if (matchMedia("(pointer: coarse)").matches) $("hint").textContent = "1 finger = rotate · 2 fingers = zoom and move · tap the pink or red button for disco";
+document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
 
 // ---------- draw ----------
 function frame() {
