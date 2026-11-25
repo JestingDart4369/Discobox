@@ -17,6 +17,7 @@ import sys
 OUT = os.path.normpath(os.path.join(ROOT, sys.argv[1])) if len(sys.argv) > 1 else os.path.join(ROOT, "_site")
 REPO = "https://github.com/JestingDart4369/Discobox"
 BRANCH = "dev"
+DOMAIN = "discobox.novaroma-homelab.uk"      # custom domain; written to CNAME in the output so the setting survives every deploy
 
 # source (repo path) -> (output file, title, nav group)
 PAGES = {
@@ -402,6 +403,7 @@ def main():
     open(os.path.join(OUT, "3d", "index.html"), "w", encoding="utf-8").write(viewer_page("3D viewer", "3d/index.html", "viewer.html"))
     open(os.path.join(OUT, "wiring", "index.html"), "w", encoding="utf-8").write(viewer_page("Wiring diagrams", "wiring/index.html", "diagrams.html"))
     open(os.path.join(OUT, "wiring", "interactive.html"), "w", encoding="utf-8").write(viewer_page("Interactive wiring", "wiring/interactive.html", "interactive_inner.html"))
+    open(os.path.join(OUT, "CNAME"), "w").write(DOMAIN + "\n")
     # pages
     open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(page("Home", landing(), "index.html", layout="stack"))
     for src, (name, title, _) in PAGES.items():
