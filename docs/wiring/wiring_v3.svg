@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="1100" height="780" fill="#ffffff"/>
+  <text x="30" y="34" font-size="22" font-weight="bold">Discobox wiring v3: housing build (mains inlet, port pocket, ceiling strip, button pipe)</text>
+  <text x="30" y="56" fill="#555">Draft v3. Detachable cables (GX plugs, C13 cord). Cables about 2.2 m. Same cable type for strip and button: 4-core 1.0 mm2 (H05VV-F 4G1.0). Check every value against your parts.</text>
+
+  <!-- legend -->
+  <g font-size="12">
+    <line x1="30" y1="80" x2="70" y2="80" stroke="#c00000" stroke-width="3"/><text x="76" y="84">230 V mains</text>
+    <line x1="170" y1="80" x2="210" y2="80" stroke="#d98200" stroke-width="3"/><text x="216" y="84">12 V</text>
+    <line x1="280" y1="80" x2="320" y2="80" stroke="#e11d48" stroke-width="2"/><text x="326" y="84">5 V</text>
+    <line x1="390" y1="80" x2="430" y2="80" stroke="#1d4ed8" stroke-width="2"/><text x="436" y="84">data / signal</text>
+    <line x1="540" y1="80" x2="580" y2="80" stroke="#111" stroke-width="2"/><text x="586" y="84">GND</text>
+  </g>
+
+  <!-- MAINS ZONE -->
+  <rect x="20" y="100" width="330" height="390" rx="8" fill="#fff5f5" stroke="#c00000" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="34" y="124" fill="#c00000" font-weight="bold">MAINS COMPARTMENT (230 V)</text>
+
+  <rect x="40" y="145" width="130" height="50" rx="5" fill="#fff" stroke="#c00000" stroke-width="2"/>
+  <text x="105" y="166" text-anchor="middle">Mains cord</text>
+  <text x="105" y="183" text-anchor="middle" font-size="11">Swiss plug to C13</text>
+
+  <rect x="200" y="145" width="130" height="50" rx="5" fill="#fff" stroke="#c00000" stroke-width="2"/>
+  <text x="265" y="166" text-anchor="middle">C14 inlet + fuse</text>
+  <text x="265" y="183" text-anchor="middle" font-size="11">fuse drawer 5x20</text>
+  <line x1="170" y1="170" x2="200" y2="170" stroke="#c00000" stroke-width="3"/>
+
+  <rect x="40" y="250" width="130" height="60" rx="5" fill="#fff" stroke="#c00000" stroke-width="2"/>
+  <text x="105" y="272" text-anchor="middle">Type 13 socket A</text>
+  <text x="105" y="289" text-anchor="middle" font-size="11">inside: the 12 V brick</text>
+  <text x="105" y="303" text-anchor="middle" font-size="11">(Europlug fits)</text>
+
+  <rect x="200" y="360" width="130" height="60" rx="5" fill="#fff" stroke="#c00000" stroke-width="2"/>
+  <text x="265" y="382" text-anchor="middle">Type 13 outlet B</text>
+  <text x="265" y="399" text-anchor="middle" font-size="11">on the box: the load</text>
+  <text x="265" y="413" text-anchor="middle" font-size="11">(spinning light)</text>
+
+  <rect x="40" y="360" width="130" height="90" rx="5" fill="#fff" stroke="#c00000" stroke-width="2"/>
+  <text x="105" y="382" text-anchor="middle" font-weight="bold">Relay module</text>
+  <text x="105" y="399" text-anchor="middle" font-size="11">COM: live from fuse</text>
+  <text x="105" y="414" text-anchor="middle" font-size="11">NO: live to outlet B</text>
+  <text x="105" y="429" text-anchor="middle" font-size="11">coil: DC+ 5 V, DC- GND</text>
+  <text x="105" y="444" text-anchor="middle" font-size="11">IN: D7</text>
+
+  <!-- mains lines -->
+  <line x1="265" y1="195" x2="265" y2="225" stroke="#c00000" stroke-width="3"/>
+  <line x1="105" y1="225" x2="265" y2="225" stroke="#c00000" stroke-width="3"/>
+  <line x1="105" y1="225" x2="105" y2="250" stroke="#c00000" stroke-width="3"/>
+  <line x1="300" y1="225" x2="300" y2="335" stroke="#c00000" stroke-width="3"/>
+  <line x1="265" y1="225" x2="300" y2="225" stroke="#c00000" stroke-width="3"/>
+  <line x1="300" y1="335" x2="105" y2="335" stroke="#c00000" stroke-width="3"/>
+  <line x1="105" y1="335" x2="105" y2="360" stroke="#c00000" stroke-width="3"/>
+  <line x1="170" y1="420" x2="200" y2="390" stroke="#c00000" stroke-width="3"/>
+  <text x="34" y="480" font-size="11" fill="#c00000">N and PE run straight through, uncut.</text>
+
+  <!-- 12 V ZONE -->
+  <rect x="380" y="100" width="700" height="390" rx="8" fill="#fffbf0" stroke="#d98200" stroke-width="2"/>
+  <text x="394" y="124" fill="#a35f00" font-weight="bold">LOW VOLTAGE (12 V / 5 V / 3.3 V)</text>
+
+  <rect x="400" y="145" width="140" height="60" rx="5" fill="#fff" stroke="#d98200" stroke-width="2"/>
+  <text x="470" y="167" text-anchor="middle">12 V supply (brick)</text>
+  <text x="470" y="184" text-anchor="middle" font-size="11">brick: barrel plug out</text>
+  <text x="470" y="198" text-anchor="middle" font-size="11">(Europlug cut, Wago to mains)</text>
+
+  <rect x="580" y="145" width="120" height="60" rx="5" fill="#fff" stroke="#d98200" stroke-width="2"/>
+  <text x="640" y="167" text-anchor="middle">Barrel jack (terminals)</text>
+  <text x="640" y="184" text-anchor="middle" font-size="11">brick plugs in here;</text>
+  <text x="640" y="198" text-anchor="middle" font-size="11">+12 V and GND split</text>
+  <line x1="540" y1="175" x2="580" y2="175" stroke="#d98200" stroke-width="3"/>
+
+  <rect x="740" y="145" width="140" height="60" rx="5" fill="#fff" stroke="#e11d48" stroke-width="2"/>
+  <text x="810" y="167" text-anchor="middle">Buck converter</text>
+  <text x="810" y="184" text-anchor="middle" font-size="11">12 V in, 5 V out (5 A)</text>
+  <line x1="700" y1="175" x2="740" y2="175" stroke="#d98200" stroke-width="3"/>
+
+  
+  <!-- 12 V fuse branch and GND star -->
+  <rect x="580" y="212" width="135" height="40" rx="5" fill="#fff" stroke="#d98200" stroke-width="2"/>
+  <text x="647" y="229" text-anchor="middle" font-size="12">5 A car fuse, +12 V</text>
+  <text x="647" y="244" text-anchor="middle" font-size="10">to strip cable core 1</text>
+  <line x1="640" y1="205" x2="640" y2="212" stroke="#d98200" stroke-width="3"/>
+  <rect x="740" y="212" width="140" height="40" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+  <text x="810" y="229" text-anchor="middle" font-size="12">GND block (star)</text>
+  <text x="810" y="244" text-anchor="middle" font-size="10">strip x2, buck IN-/OUT-, Arduino</text>
+  <line x1="700" y1="190" x2="740" y2="190" stroke="#111" stroke-width="2"/>
+  <line x1="810" y1="205" x2="810" y2="212" stroke="#111" stroke-width="2"/>
+  <text x="394" y="470" font-size="11" fill="#555">Strip 12 V does NOT pass through the buck converter: split at the barrel jack. 12 V line fused with a car fuse (12 V only).</text>
+
+  <!-- 5V rail -->
+  <line x1="880" y1="175" x2="1060" y2="175" stroke="#e11d48" stroke-width="2"/>
+  <text x="890" y="168" font-size="11" fill="#e11d48">5 V rail</text>
+  <line x1="1060" y1="175" x2="1060" y2="460" stroke="#e11d48" stroke-width="2"/>
+
+  <!-- Arduino -->
+  <rect x="720" y="260" width="200" height="200" rx="6" fill="#eef4ff" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="820" y="284" text-anchor="middle" font-weight="bold">Arduino Uno R4 WiFi (inside housing)</text>
+  <text x="735" y="312" font-size="12">D2   button</text>
+  <text x="735" y="332" font-size="12">D3/D5/D6   button LED R/G/B</text>
+  <text x="735" y="352" font-size="12">D4   ring (330 ohm)</text>
+  <text x="735" y="372" font-size="12">D7   relay IN</text>
+  <text x="735" y="392" font-size="12">D9   piezo</text>
+  <text x="735" y="412" font-size="12">D11  strip data (via 74AHCT125)</text>
+  <text x="735" y="432" font-size="12">D0/D1  DFPlayer (RX/TX)</text>
+  <text x="735" y="452" font-size="12">5 V in, GND. USB-C only when opened</text>
+  <line x1="880" y1="175" x2="880" y2="260" stroke="#e11d48" stroke-width="2"/>
+
+  <!-- level shifter -->
+  <rect x="470" y="320" width="170" height="90" rx="5" fill="#fff" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="555" y="342" text-anchor="middle" font-weight="bold">74AHCT125</text>
+  <text x="555" y="359" text-anchor="middle" font-size="11">VCC 5 V, GND</text>
+  <text x="555" y="374" text-anchor="middle" font-size="11">in: D11 (3.3 V)</text>
+  <text x="555" y="389" text-anchor="middle" font-size="11">out: 5 V, then 220-470 ohm</text>
+  <text x="555" y="403" text-anchor="middle" font-size="11">series resistor</text>
+  <line x1="720" y1="410" x2="640" y2="380" stroke="#1d4ed8" stroke-width="2"/>
+
+  <!-- relay coil lines -->
+  <path d="M 1060 330 L 920 330" stroke="#e11d48" stroke-width="2" fill="none"/>
+  <path d="M 720 372 L 690 372 L 690 500 L 105 500 L 105 450" stroke="#1d4ed8" stroke-width="2" fill="none"/>
+  <text x="500" y="494" font-size="11" fill="#1d4ed8">D7 to relay IN (also 5 V to DC+ and GND to DC-)</text>
+
+  <!-- CABLES -->
+  <rect x="20" y="520" width="1060" height="245" rx="8" fill="#f6fff6" stroke="#2f855a" stroke-width="2"/>
+  <text x="34" y="544" fill="#2f855a" font-weight="bold">CABLES via the recessed port pocket on the back (same cable type: 4-core 1.0 mm2, about 2.2 m each; use different plug sizes so they cannot be swapped)</text>
+
+  <!-- Cable A -->
+  <text x="40" y="576" font-weight="bold">Cable A: LED strip</text>
+  <rect x="40" y="590" width="120" height="50" rx="5" fill="#fff" stroke="#2f855a" stroke-width="2"/>
+  <text x="100" y="612" text-anchor="middle">GX16-4 socket</text>
+  <text x="100" y="628" text-anchor="middle" font-size="11">on the box</text>
+  <line x1="160" y1="615" x2="500" y2="615" stroke="#2f855a" stroke-width="6"/>
+  <text x="170" y="608" font-size="11">1 +12 V   2 GND   3 DATA   4 GND (data)</text>
+  <rect x="500" y="590" width="120" height="50" rx="5" fill="#fff" stroke="#2f855a" stroke-width="2"/>
+  <text x="560" y="612" text-anchor="middle">GX16-4 plug</text>
+  <text x="560" y="628" text-anchor="middle" font-size="11">at the strip</text>
+  <rect x="660" y="590" width="400" height="50" rx="5" fill="#fff" stroke="#d98200" stroke-width="2"/>
+  <text x="860" y="612" text-anchor="middle">WS2805 strip, 12 V, 3 m, 60 ICs on the ceiling</text>
+  <text x="860" y="628" text-anchor="middle" font-size="11">+12 V, GND, DAT; tie BIN (blue wire) to DAT</text>
+  <line x1="620" y1="615" x2="660" y2="615" stroke="#2f855a" stroke-width="6"/>
+
+  <!-- Cable B -->
+  <text x="40" y="676" font-weight="bold">Cable B: big red button (2 of the 4 cores)</text>
+  <rect x="40" y="690" width="120" height="50" rx="5" fill="#fff" stroke="#2f855a" stroke-width="2"/>
+  <text x="100" y="712" text-anchor="middle">GX12-2 socket</text>
+  <text x="100" y="728" text-anchor="middle" font-size="11">on the box</text>
+  <line x1="160" y1="715" x2="500" y2="715" stroke="#2f855a" stroke-width="6"/>
+  <text x="170" y="708" font-size="11">1 BTN to D2   2 GND   (3, 4 unused)</text>
+  <rect x="500" y="690" width="120" height="50" rx="5" fill="#fff" stroke="#2f855a" stroke-width="2"/>
+  <text x="560" y="712" text-anchor="middle">GX12-2 plug</text>
+  <text x="560" y="728" text-anchor="middle" font-size="11">at the button</text>
+  <rect x="660" y="690" width="400" height="50" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+  <text x="860" y="712" text-anchor="middle">Big red button (normally open switch)</text>
+  <text x="860" y="728" text-anchor="middle" font-size="11">at the Arduino end: 100 nF D2 to GND, 100-330 ohm in series</text>
+  <line x1="620" y1="715" x2="660" y2="715" stroke="#2f855a" stroke-width="6"/>
+
+  <!-- links from zone to cables -->
+  
+  <text x="400" y="520" font-size="11" fill="#555">Common GND everywhere: brick, buck converter, Arduino, relay coil, strip.</text>
+</svg>

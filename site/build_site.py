@@ -2,8 +2,9 @@
 """
 build_site.py — builds the Discobox GitHub Pages site from the files in this repo.
 
-Run:  pip install markdown && python3 site/build_site.py      -> _site/
-GitHub builds it by itself on every push (see .github/workflows/pages.yml).
+Run:  pip install markdown && python3 site/build_site.py [outdir]      -> _site/ (or outdir, e.g. docs)
+Two ways to publish: (1) Settings > Pages > Deploy from a branch > dev > /docs, after `python3 site/build_site.py docs`;
+(2) Settings > Pages > GitHub Actions (see .github/workflows/pages.yml).
 
 Pages: Home, 3D viewer, wiring viewer, enclosure, journal, BOM tables, relay, SD card, shell, CAD notes.
 To add a page: add a line to PAGES. Markdown links between pages are rewritten; links to other repo files point to GitHub.
@@ -12,7 +13,8 @@ import os, re, csv, shutil, html, posixpath
 import markdown
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-OUT = os.path.join(ROOT, "_site")
+import sys
+OUT = os.path.normpath(os.path.join(ROOT, sys.argv[1])) if len(sys.argv) > 1 else os.path.join(ROOT, "_site")
 REPO = "https://github.com/JestingDart4369/Discobox"
 BRANCH = "dev"
 

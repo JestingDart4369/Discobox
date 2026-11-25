@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project · Discobox</title><link rel="stylesheet" href="style.css"></head><body>
+<header><nav><a class="brand" href="index.html">Discobox</a><a href="index.html">Home</a><a href="3d/index.html">3D viewer</a><a href="wiring/index.html">Wiring</a><a href="enclosure.html">Enclosure</a><a href="journal.html">Journal</a><a href="bom.html">BOM</a><a href="project.html" class=on>Project</a><a href="relay.html">Relay</a><a href="sd-card.html">SD card</a><a href="shell.html">Shell</a><a href="cad.html">CAD</a><a class="gh" href="https://github.com/JestingDart4369/Discobox">GitHub</a></nav></header>
+<main><h1 id="discobox">Discobox</h1>
+<p>A button-controlled party box for the <strong>Arduino Uno R4 WiFi</strong>: LED ring and strip effects, a piezo buzzer with songs and UI sound cues, and MP3 playback through a DFPlayer Mini. One button, four gestures (single, double, triple press, hold), several modes.</p>
+<h2 id="project-status">Project status</h2>
+<p><strong>Work in progress – not finished.</strong> The project is being built in two phases:</p>
+<ol>
+<li><strong>Make it work</strong> (current phase): firmware and electronics on a breadboard / perfboard. The button, LED ring, LED strip, buzzer and DFPlayer already run together; remaining electronics issues are listed in <a href="journal.html">JOURNAL.md</a>.</li>
+<li><strong>Design the enclosure and holder</strong> (next phase, started): an original record-player enclosure designed around the parts that proved themselves in phase 1: housing with two front speakers, a fixed platter, the button on a pipe from the platter centre, recessed back ports with removable cables, and a separate mains compartment. Only rough block-outs exist so far (<a href="cad.html">cad/</a>, <a href="enclosure.html">doc/ENCLOSURE.md</a>), no final CAD or STEP yet. The enclosure is planned with a swappable button mount, so the disco-mode button can be exchanged for a different one.</li>
+</ol>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>Gesture button</strong> – non-blocking detection of single / double / triple press and hold on one pin</li>
+<li><strong>Modes</strong> – Party, Settings, LED and Off, managed by a mode manager</li>
+<li><strong>LEDs</strong> – WS2812 ring (FastLED), WS2805 RGBCCT strip (custom SPI driver built to the datasheet timing, 5 channels incl. warm/cool white), PWM RGB button LED</li>
+<li><strong>Buzzer</strong> – non-blocking MIDI-style piezo playback, UI sound cues with several theme packs, ducking of songs during cues</li>
+<li><strong>DFPlayer Mini</strong> – playlist control, auto-next, volume</li>
+<li><strong>Relay</strong> – switches an external load (e.g. a spinning disco light) with Party mode or the <code>relay</code> console command (<a href="relay.html">doc/RELAY.md</a>)</li>
+<li><strong>Persistent settings</strong> – brightness, volume, mute and cue theme stored in EEPROM</li>
+<li><strong>Serial console</strong> – control and inspect everything over USB (<code>help</code> lists the commands)</li>
+<li><strong>Native unit tests</strong> – run on your computer, no hardware needed</li>
+</ul>
+<h2 id="hardware">Hardware</h2>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Pin</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Button (switch)</td>
+<td>D2</td>
+<td>other contact to GND, internal pull-up (pressed = LOW)</td>
+</tr>
+<tr>
+<td>RGB button LED</td>
+<td>D3 (R) / D5 (G) / D6 (B)</td>
+<td>LED cathode to GND, resistors are built into the button</td>
+</tr>
+<tr>
+<td>WS2812 ring (16 LEDs)</td>
+<td>D4</td>
+<td>data via 330 Ω, 5 V supply</td>
+</tr>
+<tr>
+<td>WS2805 RGBCCT strip (12 V)</td>
+<td>D11 (SPI MOSI)</td>
+<td>to DAT and BIN, +12 V from the supply, common GND; 60 ICs = 180 LEDs (3 LEDs per IC); a 3.3 V to 5 V level shifter is recommended</td>
+</tr>
+<tr>
+<td>Relay module (1 channel, 5 V)</td>
+<td>D7</td>
+<td>active-low, 5 V supply, see <a href="relay.html">doc/RELAY.md</a></td>
+</tr>
+<tr>
+<td>Piezo speaker</td>
+<td>D9</td>
+<td>other pin to GND</td>
+</tr>
+<tr>
+<td>DFPlayer Mini RX</td>
+<td>D1 (Serial1 TX)</td>
+<td>via 1 kΩ</td>
+</tr>
+<tr>
+<td>DFPlayer Mini TX</td>
+<td>D0 (Serial1 RX)</td>
+<td>direct</td>
+</tr>
+</tbody>
+</table>
+<p>All grounds (12 V supply, 5 V buck converter, Arduino, strip) must be connected together. The full parts list with prices and links is in <a href="bom.html">BOM.csv</a>; the extra parts for the enclosure, cables and mains side are in <a href="bom.html">BOM_enclosure.csv</a>.</p>
+<p>The SD card layout for the DFPlayer (folder <code>01</code> = misc, <code>02</code> = Party mode, ...) is described in <a href="sd-card.html">doc/SD_CARD.md</a>.</p>
+<p>Electrical wiring diagrams (versions v1.2, v2 and v3, with a version switch) are in <a href="wiring/index.html">doc/wiring</a>.</p>
+<p>Everything is also published as one website (GitHub Pages, built by <a href="https://github.com/JestingDart4369/Discobox/blob/dev/site/build_site.py">site/build_site.py</a> and <a href="https://github.com/JestingDart4369/Discobox/blob/dev/.github/workflows/pages.yml">.github/workflows/pages.yml</a>); expected address: https://jestingdart4369.github.io/Discobox/ . One-time setup: repository Settings, Pages, Source: GitHub Actions.</p>
+<p>The enclosure can be viewed in 3D in a browser: <a href="3d/index.html">doc/viewer/discobox_viewer.html</a> (versions, show/hide per part, floor and side table). Product picture: <a href="img/recordplayer_product.png">doc/img/recordplayer_product.png</a>.</p>
+<p>The wiring and class diagrams are in <a href="https://github.com/JestingDart4369/Discobox/blob/dev/Discobox_Wiring.puml">Discobox_Wiring.puml</a> and <a href="https://github.com/JestingDart4369/Discobox/blob/dev/Discobox_Architecture.puml">Discobox_Architecture.puml</a> (PlantUML; the wiring diagram needs Graphviz).</p>
+<h2 id="build-and-upload">Build and upload</h2>
+<p>The project uses <a href="https://platformio.org/">PlatformIO</a>.</p>
+<pre><code class="language-bash">pio run                # build for the Uno R4 WiFi
+pio run -t upload      # build and upload
+pio test -e native     # run the unit tests on your computer
+</code></pre>
+<h2 id="project-layout">Project layout</h2>
+<pre><code>src/main.cpp        entry point, wires everything together
+include/            Buzzer player, modes, settings, serial handler
+lib/                reusable header-only libraries
+                    (GestureButton, Logger, SongPlayer, WS2805,
+                     LedController, DFPlayerController, UiSfx, Relay)
+test/               Unity tests and Arduino / DFPlayer mocks
+doc/                notes, wiring diagrams, enclosure plan and sound tooling
+cad/                STL placeholders and block-out of the enclosure (Python generators)
+</code></pre>
+<p>All libraries are header-only. Include order in <code>main.cpp</code> matters and is documented there with comments.</p>
+<h2 id="songs">Songs</h2>
+<p>Only the example song (<a href="https://github.com/JestingDart4369/Discobox/blob/dev/include/Buzzer/Songs/ExampleSong_song.h">ExampleSong_song.h</a>) is part of the repository. Other song files in <code>include/Buzzer/Songs/</code> are git-ignored because the melodies are copyrighted. The player picks up whichever song headers exist locally and skips the rest, so a fresh clone builds without them.</p>
+<p>To add your own song, convert a MIDI-style export with <a href="https://github.com/JestingDart4369/Discobox/blob/dev/doc/sound/songs/convert_song.py">convert_song.py</a>, or copy the layout of the example file, then include it in <a href="https://github.com/JestingDart4369/Discobox/blob/dev/include/Buzzer/Buzzer_Player.h">Buzzer_Player.h</a> and add a line to <code>SONGLIST</code>.</p>
+<h2 id="sound-credits">Sound credits</h2>
+<ul>
+<li><a href="https://kenney.nl">Kenney UI Audio</a> by Kenney Vleugels, CC0 (<code>doc/sound/kenney_ui-audio</code>)</li>
+<li>UI SFX sound packs, CC0 (<code>doc/sound/uisfx-sounds</code>)</li>
+</ul>
+<h2 id="license">License</h2>
+<p>MIT, see <a href="https://github.com/JestingDart4369/Discobox/blob/dev/LICENSE">LICENSE</a>. The bundled sound packs keep their own CC0 licenses (see above).</p>
+<h2 id="ai-usage">AI usage</h2>
+<p>This project was developed with the help of AI (Claude by Anthropic).</p>
+<ul>
+<li>Documentation: README, code comments and diagrams</li>
+<li>Corrections: reviewing code, fixing bugs and writing the unit tests</li>
+<li>Admin tasks: repository cleanup, licensing, <code>.gitignore</code> and git history</li>
+</ul></main>
+<footer>Discobox by JestingDart4369 · MIT license · <a href="https://github.com/JestingDart4369/Discobox">source on GitHub</a> · built from the repository files</footer></body></html>

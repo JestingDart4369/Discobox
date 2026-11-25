@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enclosure · Discobox</title><link rel="stylesheet" href="style.css"></head><body>
+<header><nav><a class="brand" href="index.html">Discobox</a><a href="index.html">Home</a><a href="3d/index.html">3D viewer</a><a href="wiring/index.html">Wiring</a><a href="enclosure.html" class=on>Enclosure</a><a href="journal.html">Journal</a><a href="bom.html">BOM</a><a href="project.html">Project</a><a href="relay.html">Relay</a><a href="sd-card.html">SD card</a><a href="shell.html">Shell</a><a href="cad.html">CAD</a><a class="gh" href="https://github.com/JestingDart4369/Discobox">GitHub</a></nav></header>
+<main><h1 id="enclosure-plan">Enclosure plan</h1>
+<p>Status: <strong>block-out only</strong>, no final CAD yet. The block-out models live in <a href="cad.html"><code>../cad/</code></a>. The idea is a record player: a fixed round platter (for looks, it does not turn) on a housing, with the electronics in the housing and the big button on a pipe rising from the platter centre.</p>
+<h2 id="layout-see-cadmake_blockoutpy">Layout (see <code>cad/make_blockout.py</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Housing</td>
+<td>340 x 340 x 100 mm block-out (will change, see "3D printing"), floor and front wall with the two speakers in one stiff piece</td>
+</tr>
+<tr>
+<td>Speakers</td>
+<td>Two round grilles on the front wall, left and right, so they look like part of the record player (hole 70 mm, speaker 80 mm assumed: check the datasheet)</td>
+</tr>
+<tr>
+<td>Platter</td>
+<td>Fixed disc, 315 mm, sits on top of the housing. Looks like a turntable, no motor</td>
+</tr>
+<tr>
+<td>Button</td>
+<td>16 mm illuminated button in a cap on a hollow pipe (26 mm outside, 20 mm inside) from the platter centre; cable runs down the pipe into the housing</td>
+</tr>
+<tr>
+<td>Arduino</td>
+<td>Inside the housing. <strong>USB-C is only reachable when the housing is opened</strong> (no hole)</td>
+</tr>
+<tr>
+<td>Back panel</td>
+<td>A <strong>recessed port pocket</strong> (300 x 50 x 22 mm): mains inlet, outlet for the disco ball, strip connector, button connector and a spare, so plugs and cables do not stick out</td>
+</tr>
+<tr>
+<td>Mains</td>
+<td>Own compartment (own box and screw-on lid, wall to the low-voltage side) holding the C14 inlet with fuse, relay, 12 V brick and the Type 13 outlet</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cables-are-removable">Cables are removable</h2>
+<ul>
+<li><strong>Mains:</strong> a standard cord (Swiss Type 12 plug on one end, IEC C13 on the other) into an IEC C14 panel inlet with a 5x20 mm fuse drawer. The relay switches the live wire to the Type 13 outlet for the disco ball.</li>
+<li><strong>LED strip:</strong> GX16-4 panel socket in the pocket, 4-core 1.0 mm2 cable with plugs: 12 V, GND, data, second GND.</li>
+<li><strong>Button:</strong> GX12-2 panel socket, the same cable type (2 of 4 cores): button signal and GND.</li>
+<li>Different connector sizes (GX16 and GX12) so they cannot be swapped by mistake. 12 V is only on the strip connector.</li>
+<li>Wiring: <a href="wiring/index.html">wiring v3</a>.</li>
+</ul>
+<h2 id="opening-and-cable-organising">Opening and cable organising</h2>
+<ul>
+<li><strong>Main screws:</strong> about 4 M3 screws into heat-set inserts. Remove them and the top lifts off. Leave slack in the cable that passes through the stem opening so the top can be put aside without unplugging.</li>
+<li><strong>One-way cable clips:</strong> two ribs with a round channel between them and an <strong>angled slit</strong>: a cable is pressed in along the slope but cannot be pulled straight out. Test print: <code>cad/placeholders/cable_clip_test.stl</code> (channel 9 mm, slit 6 mm, angle 40 degrees, tune in <code>cad/make_placeholders.py</code>). Print in PETG.</li>
+<li>Keep mains cables apart from the low-voltage cables.</li>
+</ul>
+<h2 id="3d-printing-bambu-lab-p1s">3D printing (Bambu Lab P1S)</h2>
+<p>Build volume 256 x 256 x 256 mm (the check in <code>make_blockout.py</code> uses 252 mm). The housing (340 mm) and the platter (315 mm) are too big for one print:</p>
+<ul>
+<li>Platter in 4 quarter segments, joined with tabs and screws.</li>
+<li>Housing as modular panels or shrunk to about 340 x 250 mm so the base halves fit the bed. Decision open.</li>
+<li>Mains compartment (about 128 x 111 x 70 mm) fits on the bed as it is.</li>
+<li>3 mm walls, speaker holes vertical, no overhang over 45 degrees, front panel printed face down, PETG for the clips.</li>
+</ul>
+<h2 id="open-points">Open points</h2>
+<ul>
+<li>Speaker frame diameter and depth (list says 57 mm, link is a Visaton FRS 8).</li>
+<li>Real sizes of the 12 V brick, buck converter, mains inlet, Type 13 outlet and connectors (block-out uses guesses marked "(guess)").</li>
+<li>Housing size and how it is split for printing.</li>
+<li>Ring: the DFR0888 ring is 12 LEDs (47 mm) but the code still says 16 LEDs on D4.</li>
+<li>Parts and prices: <a href="bom.html">BOM_enclosure.csv</a> (besides the main <a href="bom.html">BOM.csv</a>).</li>
+<li>Forge also needs a STEP file and the CAD source of the final design.</li>
+</ul>
+<h2 id="interior-with-wires">Interior with wires</h2>
+<p>Rough routing preview (generated by <code>cad/make_interior.py</code>, 3MF with one object per wire: <code>cad/placeholders/interior_with_wires.3mf</code>). Lid and platter hidden. Wire paths are planning routes, not exact lengths.</p>
+<p><img alt="Top view" src="img/interior_top.png" />
+<img alt="Isometric view" src="img/interior_iso.png" /></p>
+<p>Red = 230 V (only inside the mains compartment, right), orange = 12 V, magenta = 5 V, blue = data and button, black = GND. The 12 V brick lead crosses the wall to the barrel-jack terminals; from there 12 V goes (fused) to the strip port and to the buck converter; GND goes to the star block.</p>
+<h2 id="how-the-mains-part-is-isolated">How the mains part is isolated</h2>
+<ul>
+<li><strong>Own box:</strong> the mains compartment has its own walls and its own screw-on lid. The lid needs a tool, so the housing lid alone never exposes 230 V.</li>
+<li><strong>Wall to the low-voltage side:</strong> only the 5 V relay coil wires and the 12 V brick lead cross it, through small holes with grommets or a printed slot sealed with a cable clip.</li>
+<li><strong>Only the live wire is switched</strong> (fuse, relay COM, NO, outlet). Neutral and earth run straight through; earth is bonded to the outlet's earth contact.</li>
+<li><strong>Fuse:</strong> 250 V AC rated holder and fuse, in the live wire right after the cable gland (no car fuses on 230 V).</li>
+<li><strong>Strain relief:</strong> the mains cable goes through a gland (option A) or a fused C14 inlet (option B), so a pull never reaches the terminals.</li>
+<li><strong>Insulated connections:</strong> Wago or screw terminals only, no open copper, spacing of several mm between live parts and the wall or the low-voltage side.</li>
+<li><strong>Double-insulated brick:</strong> the 12 V brick has no earth wire; its low-voltage side stays below 50 V.</li>
+<li><strong>Material:</strong> print the mains box in PETG at least (3 mm walls, 3+ perimeters). Flame-retardant material (e.g. PC-FR or a flame-retardant PETG) is better; PLA is not recommended there.</li>
+<li><strong>Before powering:</strong> have the mains side checked by a qualified person (earth continuity, insulation, no loose strands). This is a hobby design, not a certified product.</li>
+</ul>
+<h2 id="pla-or-petg-bright-red-petg-spool">PLA or PETG (bright red PETG spool)</h2>
+<p>Use the red PETG. PLA softens at about 55 to 60 °C; inside the box the 12 V brick, buck converter and relay get warm and PLA can sag. PETG handles about 75 to 80 °C and is tougher (clips, screw posts). Bright red also suits the record player look: use it for the housing and platter. Print settings for PETG on the P1S: nozzle about 240 to 250 °C, bed about 70 to 80 °C, little part cooling, glue stick on the plate. Keep vents (slots) at the back above the brick for airflow.</p>
+<h2 id="shell-and-frame-two-part-design">Shell and frame (two-part design)</h2>
+<ul>
+<li><strong>Frame (PETG):</strong> 3 mm base plate, Arduino standoffs at the datasheet holes, speaker saddles, the mains compartment walls and a separate mains lid. Everything electrical is mounted on it, so the shell can come off without touching a wire.</li>
+<li><strong>Shell (PLA, outside only):</strong> walls, top, speaker grille holes, recessed port pocket, stem opening, side vent slots; no floor. It lifts straight up after removing 4 M3 screws from below (into heat-set inserts in the shell's corner columns).</li>
+<li>Generated by <code>cad/make_shell_frame.py</code>: whole parts (<code>shell.stl</code>, <code>frame.stl</code>, <code>mains_lid.stl</code>), print quarters (<code>shell_q1..q4.stl</code>, <code>frame_q1..q4.stl</code>, each fits the P1S) and <code>shell_frame_assembly.3mf</code>.</li>
+<li>Not modelled yet: joints between quarters (screw tabs or glue), clip rails, mounts for buck converter, DFPlayer, amp and brick, speaker retaining straps, a platter split.</li>
+<li>Cables to the ports run on the frame and through the port pocket, so with the shell removed the whole inside is open for repair.</li>
+</ul>
+<h2 id="module-mounts-clips-and-the-full-model">Module mounts, clips and the full model</h2>
+<ul>
+<li><strong>Snap-fit cradles</strong> on the frame for the DFPlayer, PAM8403 amp, buck converter, 74AHCT125 board, barrel-jack terminals, GND block and relay: four 5 mm pads under the PCB corners, a flexible hook arm on each short end and a fixed lip on each long side. Press the board down and it clicks in; push the two arms outward to take it out. Sizes of the amp, buck, shifter and terminal blocks are guesses, so measure and edit <code>MODULES</code> in <code>cad/make_shell_frame.py</code>. Print arms in PETG; they flex across the layers, so make a test print of one cradle first.</li>
+<li><strong>12 V brick:</strong> corner stops plus two cable-tie slots in the plate.</li>
+<li><strong>Cable clips:</strong> seven small hook clips (about 11 x 6 x 9 mm: a post, an arm folded over the wires and a lip with a slanted slit) printed onto the frame at the port bundles and along the 5 V, speaker and button runs. Press the wires in through the slit; the arm flexes and holds them. Holds a bundle of about 6 mm (<code>CLIP_D</code>), positions in <code>CLIPS</code>; test print: <code>cad/placeholders/cable_clip_small.stl</code>.</li>
+<li><strong>Full model:</strong> <code>python3 cad/make_full_assembly.py</code> writes <code>discobox_full.3mf</code> (coloured, one object per part: shell, frame, mains lid, platter, pipe, all module block-outs, wires) and <code>discobox_full.stl</code> (one merged mesh, no colour).</li>
+</ul>
+<h2 id="record-player-look-flat-platter-tilted-record-hollow-pipe">Record-player look (flat platter, tilted record, hollow pipe)</h2>
+<p><code>cad/make_recordplayer.py</code> (used by <code>make_full_assembly.py</code>):</p>
+<ul>
+<li><strong>Flat platter</strong> (270 mm, centred on the deck) and slip mat lie on the deck where a record normally lies. The pipe passes through its centre.</li>
+<li><strong>Tilted record:</strong> 300 mm (12 inch), printed, 40 degrees as in the starter model, facing the front. Label 100 mm = hub size. The LED ring block-out from the starter model (OD 70) sits in a pocket in the back; the red button is in the centre. Lowest rim is about 30 mm above the mat, so nothing touches.</li>
+<li><strong>One hollow pipe:</strong> OD 60, ID 48, vertical out of a socket collar in the frame, one smooth bend of 40 degrees (centre-line radius 70 mm), a short taper and a 100 mm hub on the back of the record like the Abwinklung of the starter model. The cables (button, LED ring) run through it. It slides out of the top after loosening 2 M3 set screws in the collar; use a small plug at the foot of the pipe so the cables can be unplugged. The shell opening is 66 mm at the centre of the deck (0, 0).</li>
+<li><strong>Hull:</strong> four feet, control panel with three knobs (decorative for now) and a slider, tonearm with pivot at the right rear (the usual place), counterweight, headshell and rest, dust-cover hinges.</li>
+<li>Real turntables use 222 mm from pivot to spindle; here the arm is shorter because the housing is 340 mm. Web search found no free STL I could copy, so the layout follows the usual turntable arrangement (<a href="https://www.manualslib.de/manual/229567/Clearaudio-Tracer.html?page=6">Clearaudio manual</a>, <a href="https://www.stereonet.com/forums/topic/61437-rega-spindle-to-pivot-distance/">StereoNet thread on 222 mm</a>).</li>
+<li>The record does not spin (no motor). Preview images: <code>doc/img/recordplayer_*.png</code> (<code>python3 cad/render_preview.py</code>); the simple renderer shows some sorting glitches that are not in the 3MF.</li>
+<li>The 315 mm parts are too big for the P1S: print platter and record in quarters (not split yet).</li>
+</ul>
+<h2 id="top-of-the-record-from-the-starter-model-exact-led-ring-positions">Top of the record from the starter model (exact LED ring positions)</h2>
+<p>The record head now uses the parts of <code>Shalplatte_Discobox.3mf</code> 1:1 (exported to <code>cad/starter/</code>: <code>led_holder.stl</code>, <code>test_top.stl</code>, <code>led_ring.stl</code>). Nothing about the ring pocket, ring width (OD 70) or the distance between ring and diffuser plate (ring top at +2 mm, plate bottom at +10 mm, so 8 mm) is changed; only the outer edge of the holder is trimmed from 315 to 300 mm and everything is shifted so the front face is at zero. The label (100 mm) sits on the diffuser plate, the button in its 16 mm hole.</p>
+<p>Product picture (light blue background): <code>doc/img/recordplayer_product.png</code>; on a side table: <code>recordplayer_scene.png</code> (<code>python3 cad/render_scene.py</code>).</p></main>
+<footer>Discobox by JestingDart4369 · MIT license · <a href="https://github.com/JestingDart4369/Discobox">source on GitHub</a> · built from the repository files</footer></body></html>

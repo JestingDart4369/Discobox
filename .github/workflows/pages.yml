@@ -1,9 +1,8 @@
 # Builds the Discobox site (site/build_site.py) and publishes it with GitHub Pages.
-# One-time setup in the repo: Settings -> Pages -> Source: "GitHub Actions".
+# Only for Pages source "GitHub Actions" (Settings -> Pages). When Pages is set to "Deploy from a branch" (dev, /docs)
+# this workflow is not needed; it runs by hand only (Actions tab -> Pages -> Run workflow).
 name: Pages
 on:
-  push:
-    branches: [dev, main]
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay · Discobox</title><link rel="stylesheet" href="style.css"></head><body>
+<header><nav><a class="brand" href="index.html">Discobox</a><a href="index.html">Home</a><a href="3d/index.html">3D viewer</a><a href="wiring/index.html">Wiring</a><a href="enclosure.html">Enclosure</a><a href="journal.html">Journal</a><a href="bom.html">BOM</a><a href="project.html">Project</a><a href="relay.html" class=on>Relay</a><a href="sd-card.html">SD card</a><a href="shell.html">Shell</a><a href="cad.html">CAD</a><a class="gh" href="https://github.com/JestingDart4369/Discobox">GitHub</a></nav></header>
+<main><h1 id="relay">Relay</h1>
+<p>One relay channel, switched from the console and by Party mode. Library: <a href="https://github.com/JestingDart4369/Discobox/blob/dev/lib/Relay/Relay.h"><code>lib/Relay/Relay.h</code></a> (header-only).</p>
+<h2 id="wiring-1-channel-5-v-module">Wiring (1-channel 5 V module)</h2>
+<table>
+<thead>
+<tr>
+<th>Module pin</th>
+<th>Connect to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DC+</code> / VCC</td>
+<td><strong>5 V</strong> rail of the buck converter (not 3.3 V)</td>
+</tr>
+<tr>
+<td><code>DC-</code> / GND</td>
+<td>common GND</td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td><strong>D7</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Load side (screw terminals):</p>
+<table>
+<thead>
+<tr>
+<th>Terminal</th>
+<th>Connect to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COM</code></td>
+<td>supply side of the live / + wire</td>
+</tr>
+<tr>
+<td><code>NO</code> (normally open)</td>
+<td>wire to the load, so it only gets power when the relay is on</td>
+</tr>
+<tr>
+<td><code>NC</code></td>
+<td>not used (use it instead of <code>NO</code> for "on by default")</td>
+</tr>
+</tbody>
+</table>
+<p>The load's return (GND / neutral) bypasses the relay.</p>
+<p><strong>230 V warning.</strong> For mains (Swiss plug: brown = live, blue = neutral, yellow-green = earth) only the brown wire goes through the relay. Never build it on a breadboard or with open terminals: use an insulated enclosure with strain relief and a fuse in the live wire, and have it checked by an experienced person before plugging it in. A ready-made switchable socket is the safer option.</p>
+<h2 id="in-the-enclosure">In the enclosure</h2>
+<p>In the final build the relay sits in the separate mains compartment (see <a href="enclosure.html">ENCLOSURE.md</a>). Mains comes in through a detachable cord (Swiss plug to C13) into an IEC C14 panel inlet with a fuse drawer. The relay's <code>COM</code> takes the live wire from the inlet and <code>NO</code> goes to the Type 13 outlet for the load (the disco ball). Blue and yellow-green go straight through. Wiring diagram: <a href="wiring/index.html">wiring v3</a>.</p>
+<h2 id="active-low">Active-low</h2>
+<p>Most 5 V relay modules (opto-coupler type) switch <strong>on when <code>IN</code> is LOW</strong>. <code>Relay</code> assumes this by default. If your relay does the opposite of what you ask, switch the polarity in <code>main.cpp</code>:</p>
+<pre><code class="language-cpp">Relay relay1(D7);          // active-low (default)
+Relay relay1(D7, false);   // active-high
+</code></pre>
+<p>The relay is off after <code>relay1.begin()</code>; the pin gets the "off" level before it becomes an output, so it does not click at boot.</p>
+<h2 id="library">Library</h2>
+<pre><code class="language-cpp">#include &lt;Relay.h&gt;
+
+Relay relay1(D7);
+
+void setup() { relay1.begin(); }
+
+relay1.on();
+relay1.off();
+relay1.toggle();
+relay1.set(true);
+relay1.isOn();      // the state we last asked for (the pin is never read back)
+</code></pre>
+<h2 id="console">Console</h2>
+<pre><code>relay            show the state
+relay on         switch on
+relay off        switch off
+relay toggle     flip it
+</code></pre>
+<p><code>status</code> also shows the relay line. Works from any mode (see <a href="shell.html">SHELL.md</a>).</p>
+<h2 id="settings">Settings</h2>
+<p>Settings mode has a <strong>relay</strong> entry (last in the list): SP toggles it between
+<em>on</em> (Party may switch the relay) and <em>off</em> (the relay stays off; <code>relay on</code> is
+ignored too). Switching it off turns a running relay off at once. The choice is
+saved to flash, so it survives a power cycle. Console: <code>settings</code> shows the
+selected setting, <code>settings -n</code> / <code>-p</code> navigate and toggle it.</p>
+<p>In code: <code>relay1.setEnabled(false)</code> / <code>relay1.isEnabled()</code>.</p>
+<h2 id="modes">Modes</h2>
+<ul>
+<li><strong>Party:</strong> SP starts the party and switches the relay <strong>on</strong> (e.g. the spinning disco light); SP again, or leaving Party mode, switches it <strong>off</strong>.</li>
+<li>Other modes do not touch the relay. A mode that does not switch the relay off itself leaves it as it was, so use <code>relay off</code> if needed.</li>
+</ul>
+<h2 id="tests">Tests</h2>
+<p><code>pio test -e native -f test_relay</code> (polarity, off after begin, on/off/toggle, enable/disable).</p></main>
+<footer>Discobox by JestingDart4369 · MIT license · <a href="https://github.com/JestingDart4369/Discobox">source on GitHub</a> · built from the repository files</footer></body></html>

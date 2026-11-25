@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD card · Discobox</title><link rel="stylesheet" href="style.css"></head><body>
+<header><nav><a class="brand" href="index.html">Discobox</a><a href="index.html">Home</a><a href="3d/index.html">3D viewer</a><a href="wiring/index.html">Wiring</a><a href="enclosure.html">Enclosure</a><a href="journal.html">Journal</a><a href="bom.html">BOM</a><a href="project.html">Project</a><a href="relay.html">Relay</a><a href="sd-card.html" class=on>SD card</a><a href="shell.html">Shell</a><a href="cad.html">CAD</a><a class="gh" href="https://github.com/JestingDart4369/Discobox">GitHub</a></nav></header>
+<main><h1 id="sd-card-structure">SD card structure</h1>
+<p>The DFPlayer Mini plays MP3 files from a microSD card. This document describes how the card is organised.</p>
+<h2 id="card-requirements">Card requirements</h2>
+<ul>
+<li>microSD card, <strong>FAT32</strong> (8 GB card in the <a href="bom.html">BOM</a>); format it as FAT32 / MS-DOS (FAT) before copying.</li>
+<li>MP3 files, 44.1 kHz, 128 kbit/s stereo recommended.</li>
+<li>Folder names are <strong>two digits</strong> (<code>01</code>..<code>99</code>), file names are <strong>three digits</strong> (<code>001.mp3</code>..<code>255.mp3</code>). The DFPlayer addresses files by these numbers, not by their song name.</li>
+<li>Max. 255 files per folder (the firmware uses <code>playFolder(folder, track)</code> which plays <code>/FF/TTT.mp3</code>).</li>
+</ul>
+<h2 id="folder-layout">Folder layout</h2>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Used for</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>01</code></td>
+<td>Miscellaneous: jingles, announcements, sound effects, anything not tied to a mode</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td><code>02</code></td>
+<td><strong>Mode 1 – Party</strong>: music playlist (<code>PARTY_FOLDER = 2</code> in <code>Modes.h</code>)</td>
+<td>in use</td>
+</tr>
+<tr>
+<td><code>03</code></td>
+<td>Mode 2 – LinkClick</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td><code>04</code></td>
+<td>Mode 3</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td><code>05</code>..</td>
+<td>Further modes, in the order of <code>MODE_LIST</code> in <code>Modes.h</code></td>
+<td>reserved</td>
+</tr>
+</tbody>
+</table>
+<p>Rule: <strong>mode number N uses folder N+1</strong>, folder <code>01</code> is always the misc folder.</p>
+<pre><code>SD card (FAT32)
+├── 01/                 misc (jingles, effects)
+│   ├── 001.mp3
+│   └── 002.mp3
+├── 02/                 Party mode playlist
+│   ├── 001.mp3
+│   ├── 002.mp3
+│   └── ...             (tracks play in numeric order, auto-next)
+├── 03/                 LinkClick mode
+├── 04/                 Mode 3
+└── lists/              optional: track-name lists (see below), ignored by the DFPlayer
+    └── 02.json
+</code></pre>
+<h2 id="how-the-firmware-uses-it">How the firmware uses it</h2>
+<ul>
+<li><strong>Party mode</strong> starts <code>DFPlayer.playFolder(2, 1)</code> with auto-next on: it plays <code>/02/001.mp3</code>, <code>/02/002.mp3</code>, ... and restarts at track 1 when the folder ends. Double press = next track, triple press = previous track, single press = stop / start.</li>
+<li>From the serial console: <code>audio -play &lt;folder&gt; &lt;track&gt;</code> (e.g. <code>audio -play 1 1</code> for the first misc file), <code>audio -loop &lt;folder&gt;</code>, <code>audio -next</code>, <code>audio -prev</code>, <code>audio -pause</code>, <code>audio -resume</code>, <code>audio -stop</code>, <code>audio -vol &lt;0-30&gt;</code>.</li>
+<li>If the card is missing or unreadable, Party mode shows a warning and runs the lights only.</li>
+</ul>
+<h2 id="preparing-the-card">Preparing the card</h2>
+<p>Download a track as MP3 (named by number so the DFPlayer can find it):</p>
+<pre><code class="language-bash">yt-dlp -x --audio-format mp3 --audio-quality 128K \
+  --postprocessor-args &quot;ffmpeg:-ar 44100 -ac 2&quot; \
+  --no-embed-thumbnail --no-embed-metadata \
+  -o &quot;~/Downloads/%(title)s.%(ext)s&quot; &quot;&lt;youtube-url&gt;&quot;
+</code></pre>
+<p>Then number the files into the folder: rename by hand to <code>001.mp3</code>, <code>002.mp3</code>, ... and keep the order stable, because the number is the track ID. A helper script (<code>mp3_prepare.py</code>, not part of this repository) can copy a source folder into a numbered DFPlayer folder and write the track list:</p>
+<pre><code class="language-bash">python3 mp3_prepare.py ~/Downloads/Party /Volumes/SDCARD/02
+</code></pre>
+<p>After copying on macOS, remove the hidden files the Finder adds, otherwise the DFPlayer can count them as tracks or play wrong files:</p>
+<pre><code class="language-bash">dot_clean /Volumes/SDCARD
+find /Volumes/SDCARD -name &quot;.DS_Store&quot; -delete
+rm -rf /Volumes/SDCARD/.Spotlight-V100 /Volumes/SDCARD/.fseventsd /Volumes/SDCARD/.Trashes
+</code></pre>
+<p>Eject the card properly before putting it into the DFPlayer.</p>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>The songs themselves are <strong>not</strong> part of the repository (copyright). Only this structure is documented.</li>
+<li>The <code>lists/</code> folder (e.g. <code>02.json</code>) only maps track numbers to song names for humans; the DFPlayer never reads it.</li>
+<li>A new mode that should play music needs: a folder <code>NN</code> on the card, a folder constant in <code>Modes.h</code> and a <code>playFolder(NN, 1)</code> call in the mode's start action.</li>
+</ul></main>
+<footer>Discobox by JestingDart4369 · MIT license · <a href="https://github.com/JestingDart4369/Discobox">source on GitHub</a> · built from the repository files</footer></body></html>

@@ -40,7 +40,7 @@ The SD card layout for the DFPlayer (folder `01` = misc, `02` = Party mode, ...)
 
 Electrical wiring diagrams (versions v1.2, v2 and v3, with a version switch) are in [doc/wiring](doc/wiring/README.md).
 
-Everything is also published as one website (GitHub Pages, built by [site/build_site.py](site/build_site.py) and [.github/workflows/pages.yml](.github/workflows/pages.yml)); expected address: https://jestingdart4369.github.io/Discobox/ . One-time setup: repository Settings, Pages, Source: GitHub Actions.
+Everything is also published as one website (GitHub Pages, built into `docs/` by [site/build_site.py](site/build_site.py): run `python3 site/build_site.py docs` after changing the documentation); expected address: https://jestingdart4369.github.io/Discobox/ . One-time setup: repository Settings, Pages, Source: Deploy from a branch, branch `dev`, folder `/docs`. The optional workflow [.github/workflows/pages.yml](.github/workflows/pages.yml) is for the "GitHub Actions" source instead.
 
 The enclosure can be viewed in 3D in a browser: [doc/viewer/discobox_viewer.html](doc/viewer/discobox_viewer.html) (versions, show/hide per part, floor and side table). Product picture: [doc/img/recordplayer_product.png](doc/img/recordplayer_product.png).
 

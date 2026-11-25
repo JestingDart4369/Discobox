@@ -1,0 +1,191 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serial shell · Discobox</title><link rel="stylesheet" href="style.css"></head><body>
+<header><nav><a class="brand" href="index.html">Discobox</a><a href="index.html">Home</a><a href="3d/index.html">3D viewer</a><a href="wiring/index.html">Wiring</a><a href="enclosure.html">Enclosure</a><a href="journal.html">Journal</a><a href="bom.html">BOM</a><a href="project.html">Project</a><a href="relay.html">Relay</a><a href="sd-card.html">SD card</a><a href="shell.html" class=on>Shell</a><a href="cad.html">CAD</a><a class="gh" href="https://github.com/JestingDart4369/Discobox">GitHub</a></nav></header>
+<main><h1 id="serial-shell-how-to-add-commands">Serial shell — how to add commands</h1>
+<p>The Discobox is controlled over the USB-C cable with a small command shell (<code>lib/Shell</code>). It follows the <a href="https://clig.dev/#arguments-and-flags">Command Line Interface Guidelines</a>: standard flag names, a long form for every flag, help on every level, clear errors with suggestions.</p>
+<p>This page explains where commands live, how to write one, which kinds of arguments and flags exist, and how to test it.</p>
+<h2 id="where-everything-is">Where everything is</h2>
+<ul>
+<li><code>lib/Shell/</code> is the shell itself. You normally never change it.</li>
+<li><code>Shell.h</code> is the only file you include. It pulls in the other two.</li>
+<li><code>ShellCore.h</code> contains input, tokenizer, argument specs, parser and the <code>Command</code> base class.</li>
+<li><code>ShellHelp.h</code> builds <code>help</code>, <code>-h</code> and <code>man</code> from the specs and checks them (<code>ShellCheck</code>).</li>
+<li><code>include/Commands/Commands.h</code> is the list of all commands (the registry). Every new command is added here.</li>
+<li><code>include/Commands/Cmd_Audio.h</code> has <code>audio buzzer ...</code> and <code>audio speaker ...</code>.</li>
+<li><code>include/Commands/Cmd_Lights.h</code> has <code>lights button|strip|ring ...</code> and <code>lights clear</code>.</li>
+<li><code>include/Commands/Cmd_Relay.h</code> has <code>relay on|off|toggle</code> (see <a href="relay.html">RELAY.md</a>).</li>
+<li><code>include/Commands/Cmd_Settings.h</code> has <code>settings ...</code>.</li>
+<li><code>include/Commands/Cmd_System.h</code> has <code>sp dp tp hold mode status brightness</code>.</li>
+<li><code>include/Commands/_Template.h</code> holds copy-paste examples written as classes. It is not compiled.</li>
+<li><code>include/Serial_Handler.h</code> is the old if/else handler. It is no longer used (nothing includes it) and can be deleted.</li>
+<li><code>src/main.cpp</code> creates the shell (<code>SerialShell</code>) and calls <code>SerialShell.update()</code> in <code>loop()</code>.</li>
+</ul>
+<h2 id="what-happens-with-one-line">What happens with one line</h2>
+<p>Take <code>lights strip -l 5 255 0 0 -d</code>:</p>
+<ol>
+<li>The LineReader collects the bytes until Enter.</li>
+<li>The Tokenizer splits the line into words: <code>lights</code>, <code>strip</code>, <code>-l</code>, <code>5</code>, <code>255</code>, <code>0</code>, <code>0</code>, <code>-d</code>.</li>
+<li>The built-ins <code>help</code>, <code>man</code> and <code>version</code> are checked.</li>
+<li>The command is looked up, by names AND aliases: <code>lights</code> → <code>strip</code> → <code>-l</code> (= <code>led</code>).</li>
+<li>The global flags are taken out of the rest: <code>-d</code> turns debug on for this one call.</li>
+<li>The ArgParser checks <code>5 255 0 0</code> against the command's specs. A wrong value stops here with an error, a usage line and an example.</li>
+<li><code>run()</code> is called with values that are already valid.</li>
+</ol>
+<p>If step 4 finds nothing, you get <code>unknown command</code> with a suggestion for typos.</p>
+<h2 id="actions-p-play-or-play">Actions: <code>-p</code>, <code>--play</code> or <code>play</code></h2>
+<p>Inside a group, every action has a word name and aliases, for example <code>play</code> with <code>-p --play</code>. All three do the same:</p>
+<pre><code>audio buzzer -p 2
+audio buzzer --play 2
+audio buzzer play 2
+</code></pre>
+<p>Aliases are checked right after the group, BEFORE the global flags. That is why <code>lights ring -d</code> means disco, <code>audio buzzer -q 2</code> means queue and <code>audio buzzer -th</code> means theme, while <code>-d</code>, <code>-q</code> and <code>-t</code> anywhere later in the line are still debug, quiet and time:</p>
+<pre><code>lights ring -d        disco
+lights ring -d -d     disco, with debug output
+-d lights ring -d     the same (global flags may also stand in front)
+</code></pre>
+<p>A group can have a default action that runs when nothing follows: <code>settings</code> shows the selected setting, <code>audio buzzer</code> and <code>audio speaker</code> show their status.</p>
+<p><code>help</code> and <code>man</code> find commands by name anywhere in the tree: <code>help buzzer</code> shows <code>audio buzzer</code>, <code>man ring</code> shows <code>lights ring</code>.</p>
+<h2 id="writing-a-command-the-short-way-fncommand">Writing a command the short way (<code>FnCommand</code>)</h2>
+<p>All real commands are written as data plus one function, without a class:</p>
+<pre><code class="language-cpp">static const ArgSpec BUZZER_QUEUE_ARGS[] = { { &quot;n&quot;, ARG_INT, 0, 255, false, 0, nullptr, &quot;song number&quot; } };
+
+static void buzzerQueue(const ParsedArgs&amp; a, CmdContext&amp; ctx) {
+  Buzzer.select((uint8_t)a.num(0));
+}
+
+static const CommandDef D_BUZZER_QUEUE = {
+  &quot;queue&quot;, &quot;select song n without playing&quot;,   // name, summary
+  &quot;-q --queue&quot;,                                // aliases (nullptr = none)
+  SHELL_LIST(BUZZER_QUEUE_ARGS),               // args   (SHELL_NONE = none)
+  SHELL_NONE,                                  // flags  (SHELL_LIST(...) if any)
+  &quot;audio buzzer -q 1&quot;,                         // example (or nullptr)
+  nullptr,                                     // man text (or nullptr)
+  buzzerQueue                                  // the function
+};
+FnCommand cmdBuzzerQueue(D_BUZZER_QUEUE);
+</code></pre>
+<p>Then put <code>&amp;cmdBuzzerQueue</code> into the group's list (<code>BUZZER_CMDS[]</code>). A group is <code>CommandGroup name("name", "summary", LIST, SHELL_COUNT(LIST), "man text", &amp;defaultCommand)</code>, where the last two are optional.</p>
+<p>The class style from <code>_Template.h</code> works too. Use it when a command needs its own state.</p>
+<h2 id="adding-a-command-in-5-steps">Adding a command in 5 steps</h2>
+<ol>
+<li><strong>Create the file</strong> <code>include/Commands/Cmd_&lt;group&gt;.h</code> (or open the existing one) and start it with <code>#pragma once</code> and <code>#include &lt;Shell.h&gt;</code>.</li>
+<li><strong>Describe the input</strong> with an <code>ArgSpec[]</code> table for positional arguments and a <code>FlagSpec[]</code> table for options. Make both <code>static const</code>, so they stay in flash and use no RAM.</li>
+<li><strong>Write the class</strong> by deriving from <code>Command</code> and filling in:
+   - <code>name()</code>: the word you type, lowercase, no spaces
+   - <code>summary()</code>: one line, shown in <code>help</code> and at the top of <code>-h</code>
+   - <code>SHELL_ARGS(table)</code> and/or <code>SHELL_FLAGS(table)</code> to connect the tables
+   - <code>example()</code>: optional but recommended, shown in <code>-h</code>, <code>man</code> and after errors
+   - <code>manText()</code>: optional long description for <code>man</code>, lines separated by <code>\n</code>
+   - <code>run(const ParsedArgs&amp; a, CmdContext&amp; ctx)</code>: does the work</li>
+<li><strong>Create the object</strong> and pass the hardware it needs into the constructor, e.g. <code>StripLedCmd stripLed(Strip);</code>. Then either put it into a group (<code>Command* const STRIP_CMDS[] = { &amp;stripLed, ... };</code> plus <code>CommandGroup stripGroup(...)</code>) or, for a top-level command, use it directly.</li>
+<li><strong>Register it</strong> in <code>include/Commands/Commands.h</code>: <code>#include</code> the file under step 1, and add the top-level object (usually the group) to <code>SHELL_COMMANDS</code> before the <code>nullptr</code> end marker.</li>
+</ol>
+<p>Then upload. The run and debug builds check every spec at boot and print <code>[ERROR]</code> lines if something is wrong.</p>
+<h2 id="positional-arguments-argspec">Positional arguments (<code>ArgSpec</code>)</h2>
+<p>Positional arguments are typed in a fixed order without a name: <code>strip led 5 255 0 0</code>.</p>
+<pre><code class="language-cpp">static const ArgSpec STRIP_LED_ARGS[] = {
+  // name     type       min max optional def choices  help
+  { &quot;index&quot;, ARG_INT,    0,  59, false,   0,  nullptr, &quot;IC number (0-based)&quot; },
+  { &quot;color&quot;, ARG_COLOR,  0,  0,  false,   0,  nullptr, &quot;r g b, r,g,b or #hex&quot; },
+};
+</code></pre>
+<p>The fields:</p>
+<ul>
+<li><code>name</code> is shown as <code>&lt;name&gt;</code> in help, or <code>[name]</code> if optional.</li>
+<li><code>type</code> is one of the types below.</li>
+<li><code>min</code> and <code>max</code> are the allowed range (<code>ARG_INT</code> only). Anything outside is rejected before <code>run()</code>.</li>
+<li><code>optional</code>: <code>true</code> means the user may leave it out. Optional arguments must come after the required ones.</li>
+<li><code>def</code> is the value used when an optional <code>ARG_INT</code> is left out.</li>
+<li><code>choices</code> is the list for <code>ARG_CHOICE</code>, ending with <code>nullptr</code>.</li>
+<li><code>help</code> is one short line for <code>-h</code> and <code>man</code>. Required.</li>
+</ul>
+<p>The types:</p>
+<ul>
+<li><code>ARG_INT</code> is a whole number within <code>min..max</code>. Read it with <code>a.num(i)</code>.</li>
+<li><code>ARG_COLOR</code> is a colour: <code>255 0 0</code> (three words), <code>255,0,0</code>, <code>#ff0000</code> or <code>ff0000</code>. Read it with <code>a.color(i, r, g, b)</code>.</li>
+<li><code>ARG_WORD</code> is any single word, case kept. Read it with <code>a.word(i)</code>.</li>
+<li><code>ARG_CHOICE</code> is one word from a fixed list, case-insensitive. Read the index with <code>a.num(i)</code> and the word with <code>a.word(i)</code>. A wrong word lists the allowed ones.</li>
+</ul>
+<p>Use <code>a.has(i)</code> to see whether an optional argument was actually typed.</p>
+<h2 id="flags-flagspec">Flags (<code>FlagSpec</code>)</h2>
+<p>Flags are named options that can stand anywhere in the line. Every flag has a long form and can have a one-letter short form. All of these do the same thing: <code>-s 30</code>, <code>-s30</code>, <code>--speed 30</code>, <code>--speed=30</code>.</p>
+<pre><code class="language-cpp">static const FlagSpec STRIP_WIPE_FLAGS[] = {
+  // long    short type      min max  def help
+  { &quot;speed&quot;, 's',  ARG_INT,  1,  200, 15, &quot;ms per fade step&quot; },
+  { &quot;only&quot;,  'o',  ARG_NONE, 0,  0,   0,  &quot;turn every other IC off first&quot; },
+  { &quot;save&quot;,  '\0', ARG_NONE, 0,  0,   0,  &quot;also store in flash&quot; },   // long form only
+};
+</code></pre>
+<p>The types for flags:</p>
+<ul>
+<li><code>ARG_NONE</code> is a switch without a value (<code>--only</code>). Check it with <code>a.flagSet(i)</code>. Several switches combine: <code>-lr</code> is <code>-l -r</code>.</li>
+<li><code>ARG_INT</code> takes a number within <code>min..max</code>. Read it with <code>a.flagNum(i)</code>, which returns <code>def</code> if the flag was not given.</li>
+<li><code>ARG_WORD</code> takes one word. Read it with <code>a.flagWord(i)</code>.</li>
+<li><code>ARG_COLOR</code> takes one colour word (<code>#ff0000</code> or <code>255,0,0</code>). Read it with <code>a.flagColor(i, r, g, b)</code>.</li>
+</ul>
+<p>Rules for flags, following clig.dev (the boot check enforces them):</p>
+<ul>
+<li>Every flag needs a long name and a help text.</li>
+<li>Only give a short letter to flags that are used often. Rare ones get <code>'\0'</code>.</li>
+<li>The letters <code>h</code>, <code>d</code>, <code>q</code> and <code>t</code> belong to the global flags and cannot be used. <code>n</code> is free.</li>
+<li>Don't use <code>v</code>: it is ambiguous (verbose or version?).</li>
+<li>Use the standard names where they fit: <code>-f/--force</code> to skip a confirmation, <code>-a/--all</code>, <code>-o/--output</code>.</li>
+<li>Never pass a secret (a future Wi-Fi password) as a flag.</li>
+</ul>
+<h2 id="global-flags-work-with-every-command">Global flags (work with every command)</h2>
+<p>These are handled by the shell. Your command only reads them from <code>ctx</code> if it needs to.</p>
+<ul>
+<li><code>-h</code>, <code>--help</code> shows the help for that command. It works even when appended to a broken line.</li>
+<li><code>-d</code>, <code>--debug</code> makes <code>ctx.dbg(...)</code> print, for this one call.</li>
+<li><code>-q</code>, <code>--quiet</code> silences <code>ctx.log(...)</code> and <code>Logger::log(...)</code>. Warnings and errors still show.</li>
+<li><code>-dry</code>, <code>--dry-run</code> checks and prints the arguments, but does not call <code>run()</code>. <code>-dry</code> is a whole word: it is NOT read as <code>-d -r -y</code>.</li>
+<li><code>-t</code>, <code>--time</code> prints how long <code>run()</code> took, in microseconds.</li>
+<li><code>--version</code> prints the firmware version (no <code>-v</code>, see above).</li>
+<li><code>--</code> ends flags: everything after it is an argument, even if it starts with <code>-</code>.</li>
+</ul>
+<h2 id="writing-run">Writing <code>run()</code></h2>
+<p><code>run()</code> only gets valid input, so there is no <code>atoi</code>, no range check and no "usage:" message inside it. Do the work and report through <code>ctx</code>:</p>
+<ul>
+<li><code>ctx.log("...")</code> is normal output, silenced by <code>-q</code>.</li>
+<li><code>ctx.dbg("...")</code> is extra detail, only shown with <code>-d</code>.</li>
+<li><code>ctx.warn("...")</code> is something unexpected but okay. Always shown.</li>
+<li><code>ctx.err("...")</code> is something that failed. Always shown.</li>
+<li><code>ctx.out("...")</code> is plain text without a prefix, e.g. a list or table.</li>
+</ul>
+<p>Everything uses printf syntax (<code>%d</code>, <code>%u</code>, <code>%s</code>). Each call prints one line of at most 128 characters.</p>
+<p>Pass hardware objects into the constructor instead of using the globals inside <code>run()</code>. That keeps the command testable and makes it clear what it touches.</p>
+<h2 id="groups">Groups</h2>
+<p>A group is a command that only holds sub-commands, for example <code>strip</code> holds <code>led</code>, <code>wipe</code>, <code>clear</code>. Name things noun first, then verb: <code>strip clear</code>, <code>buzzer play</code>, <code>audio vol</code>.</p>
+<pre><code class="language-cpp">Command* const STRIP_CMDS[] = { &amp;stripLed, &amp;stripWipe, &amp;stripClear };
+CommandGroup stripGroup(&quot;strip&quot;, &quot;WS2805 RGBCCT strip (60 ICs)&quot;,
+                        STRIP_CMDS, sizeof(STRIP_CMDS) / sizeof(STRIP_CMDS[0]),
+                        &quot;optional man text&quot;);
+</code></pre>
+<p>Typing just <code>strip</code> or <code>strip -h</code> shows the group's help with all sub-commands. Groups can contain groups.</p>
+<h2 id="help-and-man-pages">Help and man pages</h2>
+<p>You never write help text by hand. It comes from the specs, <code>summary()</code>, <code>example()</code> and <code>manText()</code>:</p>
+<ul>
+<li><code>help</code> lists all commands.</li>
+<li><code>help strip led</code>, <code>strip led -h</code> and <code>strip led --help</code> show usage, arguments, options and the example.</li>
+<li><code>man strip led</code> shows the full page: NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, OPTIONS, GLOBAL OPTIONS, EXAMPLE.</li>
+<li><code>man flags</code> explains the global flags. <code>man colors</code> explains the colour formats.</li>
+</ul>
+<p>Extra pages that are not commands go into <code>SHELL_TOPICS</code> in <code>Commands.h</code>.</p>
+<h2 id="testing-a-new-command">Testing a new command</h2>
+<ol>
+<li>Upload the debug or run build. The boot check prints <code>[ERROR]</code> lines for any wrong spec (range <code>min &gt; max</code>, missing help, taken letter, ...).</li>
+<li>Type <code>&lt;command&gt; -h</code> and read the generated help. If it is unclear, improve <code>summary()</code>, the <code>help</code> texts or <code>example()</code>.</li>
+<li>Try it with <code>-dry</code> (dry-run) to see exactly which values the parser produced, without touching the hardware.</li>
+<li>Try wrong input on purpose (a number out of range, a missing argument, a typo in a flag) and check that the error is understandable.</li>
+<li>Run the laptop tests for the shell itself with <code>pio test -e native -f "test_shell_*"</code>.</li>
+</ol>
+<h2 id="limits">Limits</h2>
+<p>All memory is static, sized in <code>ShellConfig</code> at the top of <code>ShellCore.h</code>. Each value can be raised with a build flag, e.g. <code>-DSHELL_MAX_ARGS=8</code>:</p>
+<ul>
+<li>96 characters per line (<code>SHELL_MAX_LINE</code>)</li>
+<li>12 words per line (<code>SHELL_MAX_TOKENS</code>)</li>
+<li>6 positional arguments per command (<code>SHELL_MAX_ARGS</code>)</li>
+<li>6 own flags per command (<code>SHELL_MAX_FLAGS</code>)</li>
+<li>128 characters per output line (<code>SHELL_OUT_BUF</code>)</li>
+</ul></main>
+<footer>Discobox by JestingDart4369 · MIT license · <a href="https://github.com/JestingDart4369/Discobox">source on GitHub</a> · built from the repository files</footer></body></html>
