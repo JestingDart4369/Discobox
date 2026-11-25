@@ -345,8 +345,16 @@ public:
   /**
    * @brief Prepare the warm-white candle-flicker effect.
    * Call once before the first flickerUpdate().
+   * @param strength 1 = subtle ... 5 = strong (default 4).
+   *
+   * Two layers make it visible from across the room:
+   *   - every IC wanders on its own between `low` and full (the flame)
+   *   - now and then a GUST dims the whole strip together for 3-8 frames —
+   *     independent ICs alone average out to an almost steady light
    */
-  void flickerBegin() {
+  void flickerBegin(uint8_t strength = 4) {
+    _flickStrength = strength < 1 ? 1 : (strength > 5 ? 5 : strength);
+    _flickGust = 0;
     for (uint16_t i = 0; i < Led_Number; i++) {
       _flickCurrent[i] = 200; _flickTarget[i] = 200;
     }
@@ -354,19 +362,31 @@ public:
 
   /**
    * @brief Advance the flicker animation by one frame and push to strip.
-   * Call every animation frame (10–25 FPS is enough).
+   * Call every animation frame (25-35 FPS looks best).
    */
   void flickerUpdate() {
+    const uint8_t s       = _flickStrength;
+    const int     low     = 255 - s * 45;     // darkest a single IC goes: s1 210, s4 75, s5 30
+    const int     chance  = 2 + s;            // of 10: how often an IC picks a new target
+    const int     maxStep = 10 + s * 10;      // how fast it moves there: s1 20, s5 60
+
+    // gust: the whole strip dips together. Chance per frame s*0.5 % (s4 at
+    // ~33 fps: about every 1.5 s), depth by strength: s1 to ~75 %, s5 to ~15 %.
+    if (_flickGust == 0 && _rndRange(0, 1000) < s * 5) _flickGust = (uint8_t)_rndRange(3, 9);
+    const int gustMin = 85 - s * 14;                         // s1 71 %, s4 29 %, s5 15 %
+    const int gust = _flickGust ? _rndRange(gustMin, gustMin + 26) : 100;   // % of normal
+
     for (uint16_t i = 0; i < Led_Number; i++) {
-      if (_rndRange(0, 10) < 3) _flickTarget[i] = _rndRange(120, 255);
-      int step = _rndRange(5, 25);
+      if (_rndRange(0, 10) < chance) _flickTarget[i] = (uint8_t)_rndRange(low, 256);
+      int step = _rndRange(5, maxStep + 1);
       if (_flickCurrent[i] < _flickTarget[i])
-        _flickCurrent[i] = min(255, _flickCurrent[i] + step);
+        _flickCurrent[i] = (uint8_t)min(255, _flickCurrent[i] + step);
       else
-        _flickCurrent[i] = max(0,   _flickCurrent[i] - step);
-      uint8_t ww = _flickCurrent[i];
-      _leds[i] = RGBCCT(ww / 8, 0, 0, 0, ww);
+        _flickCurrent[i] = (uint8_t)max(0, _flickCurrent[i] - step);
+      uint8_t ww = (uint8_t)((uint16_t)_flickCurrent[i] * gust / 100);
+      _leds[i] = RGBCCT(ww / 5, ww / 40, 0, 0, ww);   // warm white + a touch of orange
     }
+    if (_flickGust) _flickGust--;
     show();
   }
 
@@ -375,6 +395,8 @@ private:
   RGBCCT  _leds[Led_Number];
   uint8_t _flickCurrent[Led_Number];
   uint8_t _flickTarget[Led_Number];
+  uint8_t _flickStrength = 4;       // 1..5, see flickerBegin()
+  uint8_t _flickGust     = 0;       // frames left of the current whole-strip dip
 
   // Fast xorshift32 PRNG. Arduino random() was measured at ~95 ms per call on the
   // R4 (60 calls = 5.7 s per disco frame); this takes a few microseconds.

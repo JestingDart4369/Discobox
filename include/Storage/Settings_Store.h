@@ -18,7 +18,7 @@
   there, so re-saving the same value again costs nothing.
 
   WHAT'S SAVED
-  Cue theme, cue gap (before/after), cue mute, DFPlayer volume, and the
+  Relay enable, cue theme, cue gap (before/after), cue mute, DFPlayer volume, and the
   brightness levels (ring, strip, button) + master brightness — the things
   Settings mode / `buzzer -theme|-gap|-mute` / `bright` / the CLI change.
   NOT saved: which mode is active, party running/stopped, which song is
@@ -42,7 +42,7 @@
 
   IMPORTANT: include this in main.cpp AFTER Buzzer_Player.h,
   Lights/Brightness_Manager.h and Audio/Volume_Manager.h (Buzzer, Brightness,
-  Volume) — it reads and writes those globals directly.
+  Volume) and relay1 — it reads and writes those globals directly.
 */
 
 #include <EEPROM.h>
@@ -71,6 +71,8 @@ struct PersistedSettings {
   uint8_t  musicVolume;  ///< Buzzer song level (0..8)
   uint8_t  cueVolume;    ///< Buzzer UI cue level (0..8)
   uint8_t  audioMaster;  ///< Audio master in % (0..100) on top of speaker/music/cues
+  // ── added in v5 ──
+  uint8_t  relayEnabled; ///< 1 = the relay may be switched on (Party), 0 = stays off
 };
 
 /**
@@ -85,7 +87,7 @@ struct PersistedSettings {
 class SettingsStore {
 public:
   static const uint16_t MAGIC   = 0xD15C;   ///< Sentinel value — "not garbage"
-  static const uint8_t  VERSION = 4;         ///< v3: strip/button/master brightness, v4: buzzer volumes + audio master
+  static const uint8_t  VERSION = 5;         ///< v3: strip/button/master brightness, v4: buzzer volumes + audio master, v5: relay enable
 
   /**
    * @brief Read flash and apply the stored settings to Buzzer and RingOFLeds.
@@ -117,13 +119,16 @@ public:
       d.cueVolume   = Volume.level(VolumeManager::CUES);
       d.audioMaster = Volume.master();
     }
-
+    if (oldVersion < 5) {                  // v5 added relay enable
+      d.relayEnabled = relay1.isEnabled() ? 1 : 0;
+    }
 
     Buzzer.setCuePack(d.cuePackIndex);
     Buzzer.setCueGap(d.gapBeforeMs, d.gapAfterMs);
     Buzzer.setMuted(d.muted != 0);
     Brightness.setAll(d.ringBrightness, d.stripBrightness, d.buttonBrightness, d.masterBrightness);
     Volume.setAll(d.volume, d.musicVolume, d.cueVolume, d.audioMaster);
+    relay1.setEnabled(d.relayEnabled != 0);
 
     Logger::log("Settings: loaded (pack %s, gap %d/%dms, cues %s, vol %d)",
                 Buzzer.cuePackName(), d.gapBeforeMs, d.gapAfterMs,
@@ -162,6 +167,7 @@ public:
     d.musicVolume  = Volume.level(VolumeManager::MUSIC);
     d.cueVolume    = Volume.level(VolumeManager::CUES);
     d.audioMaster  = Volume.master();
+    d.relayEnabled = relay1.isEnabled() ? 1 : 0;
 
     EEPROM.put(0, d);   // only actually rewrites bytes that changed
     Logger::log("Settings: saved");

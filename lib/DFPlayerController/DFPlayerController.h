@@ -107,14 +107,26 @@ public:
     if (_player.available()) {
       uint8_t type = _player.readType();
 
-      if (type == DFPlayerPlayFinished) {
+      if (type == DFPlayerPlayFinished && _looping) {
+        // LOOP MODE: "finished" -> start the next song (index order, gaps skipped,
+        // last -> first). Some clones send the event twice -> ignore it right after a start.
+        if (millis() - _play_start_ms < LOOP_DEBOUNCE_MS) return;
+        _track = nextTrack(_track, +1, true);         // the DFPlayer plays the folder in number order
+        sendPlay(_folder, _track);           // the FIRMWARE starts the next song by its number
+        _playing       = true;
+        _track_changed = true;
+        _play_start_ms = millis();
+        Serial.print(F("[DFPlayer] Loop: "));
+        Serial.print(_folder); Serial.print('/'); Serial.println(_track);
+      }
+      else if (type == DFPlayerPlayFinished) {
         _playing = false;
         Serial.print(F("[DFPlayer] Track fertig: "));
         Serial.print(_folder); Serial.print('/'); Serial.println(_track);
 
         if (_auto_next) {
-          _track++;
-          _player.playFolder(_folder, _track);
+          _track = nextTrack(_track, +1, true);       // skips gaps if an index is set
+          sendPlay(_folder, _track);
           _playing       = true;
           _track_changed = true;
           _play_start_ms = millis();
@@ -126,8 +138,8 @@ public:
         uint8_t err = _player.read();
         // Track existiert nicht → Playlist von vorne
         if (_auto_next && (err == DFPlayerCardInserted || err == 0x06)) {
-          _track = 1;
-          _player.playFolder(_folder, _track);
+          _track = firstTrack();
+          sendPlay(_folder, _track);
           _playing       = true;
           _track_changed = true;
           _play_start_ms = millis();
@@ -142,30 +154,38 @@ public:
   /** @brief Play a specific track. @param folder SD folder number (e.g. 1 = /01/). @param track Track number (e.g. 1 = 001.mp3). */
   void playFolder(uint8_t folder, uint8_t track) {
     if (!_ok) return;
+    _looping       = false;                // a single track ends any loop
     _folder        = folder;
     _track         = track;
     _playing       = true;
     _track_changed = true;
     _play_start_ms = millis();
-    _player.playFolder(folder, track);
+    sendPlay(folder, track);
   }
 
   /**
-   * @brief Loop all tracks in a folder using the DFPlayer's built-in autoplay.
+   * @brief Loop all tracks in a folder, driven by the FIRMWARE.
    *
-   * The DFPlayer handles track advancement internally — no Arduino polling needed.
-   * Much more reliable than software auto-next. Use this instead of playFolder()
-   * + setAutoNext() for playlist playback.
+   * Every song is started by its number (playFolder), and step() starts the
+   * next one when the DFPlayer reports "finished": index order, missing tracks
+   * skipped, after the last one the first again. So currentTrack() is always
+   * the song that really plays.
+   *
+   * Not the DFPlayer's own loop (loopFolder): that plays the files in the order
+   * they lie on the card (FAT order, roughly the copy order), which the firmware
+   * can't see — on the Discobox card it started with 044 while the firmware
+   * assumed 001, so every title was one off.
    * @param folder SD folder number (1–99).
    */
   void playFolderLoop(uint8_t folder) {
     if (!_ok) return;
     _folder        = folder;
-    _track         = 1;
+    _track         = firstTrack();         // the DFPlayer starts with the lowest number
+    _looping       = true;                 // step(): finished = start the next song
     _playing       = true;
     _track_changed = true;
     _play_start_ms = millis();
-    _player.loopFolder(folder);
+    sendPlay(folder, _track);
   }
 
   /** @brief Pause playback. No-op if already paused or not initialised. */
@@ -187,25 +207,51 @@ public:
   /** @brief Skip to the next track in the current folder. */
   void next() {
     if (!_ok) return;
-    _track++;
+    _track = nextTrack(_track, +1, true);
     _playing       = true;
     _track_changed = true;
     _play_start_ms = millis();
-    _player.playFolder(_folder, _track);
+    sendPlay(_folder, _track);
   }
 
   /** @brief Go back to the previous track in the current folder. No-op if already at track 1. */
   void previous() {
-    if (!_ok || _track <= 1) return;
-    _track--;
+    if (!_ok) return;
+    uint8_t t = nextTrack(_track, -1, false);
+    if (t == _track) return;                          // already at the first track
+    _track = t;
     _playing       = true;
     _track_changed = true;
     _play_start_ms = millis();
-    _player.playFolder(_folder, _track);
+    sendPlay(_folder, _track);
   }
 
   /** @brief Enable or disable automatic playlist advancement. @param on true = play next track when current one ends; false = stop after track. */
   void setAutoNext(bool on) { _auto_next = on; }
+
+  /** @brief true while a folder loop runs (playFolderLoop), also after next/back inside it. */
+  bool isLooping() const { return _looping; }
+
+  /**
+   * @brief Tells the controller which tracks really EXIST on the card.
+   * fn(folder, track, dir) returns the next existing track after `track` in
+   * direction dir (+1 / -1), or -1 if there is none. With it, next / back /
+   * auto-next skip missing files instead of hitting them (and auto-next wraps
+   * from the last track to the first). nullptr = plain +1 / -1 (default).
+   * See include/Audio/Track_Index.h (TrackIndex::step).
+   */
+  typedef int16_t (*TrackStepFn)(uint8_t folder, uint8_t track, int8_t dir);
+  void setTrackIndex(TrackStepFn fn) { _stepFn = fn; }
+
+  /**
+   * @brief Translates a FILE NUMBER into what the module must be sent.
+   * Some DFPlayer clones ignore the "001" in the file name and play the Nth
+   * file in CARD order instead. fn(folder, track) returns that card position.
+   * currentTrack() / titles keep using the file number. nullptr = send as is.
+   * See TrackIndex::cardPosition() in include/Audio/Track_Index.h.
+   */
+  typedef uint8_t (*TrackMapFn)(uint8_t folder, uint8_t track);
+  void setTrackMap(TrackMapFn fn) { _mapFn = fn; }
 
   // ── Lautstärke ──────────────────────────────────────────
 
@@ -252,6 +298,37 @@ private:
   uint8_t  _folder = 1;
   uint8_t  _track  = 1;
   uint8_t  _vol    = 30;
+
+  TrackStepFn _stepFn = nullptr;   // see setTrackIndex()
+  TrackMapFn  _mapFn  = nullptr;   // see setTrackMap()
+
+  /** @brief The ONLY place that tells the module to play: file number -> card position. */
+  void sendPlay(uint8_t folder, uint8_t track) {
+    _player.playFolder(folder, _mapFn ? _mapFn(folder, track) : track);
+  }
+
+  // Folder loop (playFolderLoop), driven by the firmware: on "finished" step()
+  // starts the next song itself, so currentTrack() is always what really plays.
+  static const uint16_t LOOP_DEBOUNCE_MS = 1000;   // ignore a 2nd "finished" right after a start
+  bool _looping = false;
+
+  /** @brief Next track number in direction dir; `wrap` = after the last comes the first. */
+  uint8_t nextTrack(uint8_t from, int8_t dir, bool wrap) const {
+    if (!_stepFn) {                                    // no index: the old behaviour
+      if (dir > 0) return (uint8_t)(from + 1);
+      return from > 1 ? (uint8_t)(from - 1) : from;
+    }
+    int16_t t = _stepFn(_folder, from, dir);
+    if (t < 0 && wrap) t = _stepFn(_folder, 0, +1);    // past the end -> first track
+    return t < 0 ? from : (uint8_t)t;
+  }
+
+  /** @brief First track of the current folder (1 without an index). */
+  uint8_t firstTrack() const {
+    if (!_stepFn) return 1;
+    int16_t t = _stepFn(_folder, 0, +1);
+    return t < 0 ? 1 : (uint8_t)t;
+  }
 
   uint32_t _play_start_ms = 0;
   uint32_t _paused_at_ms  = 0;

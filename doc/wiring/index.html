@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Discobox wiring diagrams</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; margin: 0; background: #f4f4f4; color: #222; }
+  header { background: #fff; padding: 12px 20px; border-bottom: 1px solid #ddd; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 18px; margin: 0; }
+  .tabs button { padding: 6px 14px; border: 1px solid #aaa; background: #fff; cursor: pointer; border-radius: 4px; font-size: 14px; }
+  .tabs button.active { background: #222; color: #fff; border-color: #222; }
+  #note { padding: 8px 20px; font-size: 14px; color: #555; background: #fffbe6; border-bottom: 1px solid #eee; }
+  main { padding: 16px; }
+  img { max-width: 100%; background: #fff; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Discobox wiring</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+<div id="note"></div>
+<main><img id="img" alt="Wiring diagram"></main>
+<script>
+  // Add a new version: copy the file into this folder and add one line here.
+  const VERSIONS = [
+    { id: "v3",   label: "v3 (current plan)", file: "wiring_v3.svg",
+      note: "Housing build: detachable mains cord into a C14 inlet with fuse, relay in its own mains compartment, port pocket with GX connectors, Arduino inside the housing, button on a pipe." },
+    { id: "v2",   label: "v2", file: "wiring_v2.svg",
+      note: "Internal 12 V brick, relay with Swiss plug and socket, level shifter, ceiling strip and button on separate cables." },
+    { id: "v1.2", label: "v1.2 (first plan)", file: "wiring_v1.2.png",
+      note: "First wiring plan from the early breadboard phase (strip data pin was still undecided, strip listed as SK6812)." },
+  ];
+  const tabs = document.getElementById("tabs"), img = document.getElementById("img"), note = document.getElementById("note");
+  function show(v) {
+    img.src = v.file; note.textContent = v.note;
+    [...tabs.children].forEach(b => b.classList.toggle("active", b.dataset.id === v.id));
+    location.hash = v.id;
+  }
+  VERSIONS.forEach(v => {
+    const b = document.createElement("button");
+    b.textContent = v.label; b.dataset.id = v.id; b.onclick = () => show(v);
+    tabs.appendChild(b);
+  });
+  show(VERSIONS.find(v => "#" + v.id === location.hash) || VERSIONS[0]);
+</script>
+</body>
+</html>

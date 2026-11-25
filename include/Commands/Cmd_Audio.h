@@ -31,6 +31,8 @@
     audio speaker -s / --stop          stop (pause — the DFPlayer has no hard stop)
     audio speaker -r / --resume        continue after stop
     audio speaker -v / --volume [v]    0..30, saved
+    audio speaker -i  / --info         what is playing: title, artist, time
+    audio speaker -ls / --list [folder] tracks of a folder (from the SD index)
 
     audio                              all volumes + master
     audio -a / --all [percent]         audio MASTER 0..100 %, scales speaker + buzzer
@@ -42,6 +44,7 @@
   Uses the globals from main.cpp: Buzzer, SONGLIST, UISFX_*, DFPlayer, Volume, Persist.
 */
 #include <Shell.h>
+#include "Audio/Track_Index.h"     // titles from the SD card's index.txt
 
 // ── shared: "20" / "+" / "-" / "+3" / "-3" -> new value ──────────────────────
 /**
@@ -278,32 +281,107 @@ static bool speakerReady(CmdContext& ctx) {
 }
 
 static void speakerStatus(const ParsedArgs&, CmdContext& ctx) {
-  ctx.out("speaker: %s | folder %u track %u | volume %u/30 (heard at %u)",
+  char line[96];
+  TrackIndex::describe(DFPlayer.currentFolder(), DFPlayer.currentTrack(), line, sizeof(line));
+  ctx.out("speaker: %s%s | volume %u/30 (heard at %u)",
           !DFPlayer.isOK() ? "not found" : DFPlayer.isPlaying() ? "playing" : "ready",
-          (unsigned)DFPlayer.currentFolder(), (unsigned)DFPlayer.currentTrack(),
+          DFPlayer.isLooping() ? " (folder loop)" : "",
           (unsigned)Volume.level(VolumeManager::SPEAKER), (unsigned)Volume.effective(VolumeManager::SPEAKER));
+  ctx.out("track:   %s", line);
+}
+
+/** @brief Log the current track with its title (and stop TrackIndex::watch() repeating it). */
+static void logCurrentTrack(CmdContext& ctx) {
+  char line[96];
+  uint8_t f = DFPlayer.currentFolder(), t = DFPlayer.currentTrack();
+  TrackIndex::describe(f, t, line, sizeof(line));
+  TrackIndex::markAnnounced(f, t);
+  ctx.log("speaker: %s", line);
 }
 
 static void speakerPlay(const ParsedArgs& a, CmdContext& ctx) {
   if (!speakerReady(ctx)) return;
-  DFPlayer.playFolder((uint8_t)a.num(0), (uint8_t)a.num(1));   // track: 1 if not given
-  ctx.log("speaker: folder %ld track %ld", (long)a.num(0), (long)a.num(1));
+  uint8_t folder = (uint8_t)a.num(0);
+  uint8_t track  = (uint8_t)a.num(1);
+  if (!a.has(1)) {                                       // no track: first one that exists
+    int16_t first = TrackIndex::step(folder, 0, +1);
+    track = first > 0 ? (uint8_t)first : 1;
+  } else if (TrackIndex::countIn(folder) && !TrackIndex::find(folder, track)) {
+    ctx.warn("track %u is not in folder %02u's index - missing on the SD card?", track, folder);
+  }
+  DFPlayer.playFolder(folder, track);
+  logCurrentTrack(ctx);
 }
 static void speakerNext(const ParsedArgs&, CmdContext& ctx) {
   if (!speakerReady(ctx)) return;
-  DFPlayer.next();
-  ctx.log("speaker: track %u", (unsigned)DFPlayer.currentTrack());
+  DFPlayer.next();                                       // skips gaps, wraps to the first
+  logCurrentTrack(ctx);
 }
 static void speakerBack(const ParsedArgs&, CmdContext& ctx) {
   if (!speakerReady(ctx)) return;
-  if (DFPlayer.currentTrack() <= 1) { ctx.warn("already at track 1"); return; }
+  if (TrackIndex::step(DFPlayer.currentFolder(), DFPlayer.currentTrack(), -1) < 0) {
+    ctx.warn("already at the first track");
+    return;
+  }
   DFPlayer.previous();
-  ctx.log("speaker: track %u", (unsigned)DFPlayer.currentTrack());
+  logCurrentTrack(ctx);
+}
+
+static void speakerInfo(const ParsedArgs&, CmdContext& ctx) {
+  uint8_t f = DFPlayer.currentFolder(), t = DFPlayer.currentTrack();
+  const TrackInfo* info = TrackIndex::find(f, t);
+  ctx.out("%s%s  %02u/%03u", !DFPlayer.isOK() ? "not found" : DFPlayer.isPlaying() ? "playing" : "stopped",
+          DFPlayer.isLooping() ? " (folder loop)" : "", f, t);
+  if (!info) {
+    ctx.out("  not in the index (run the microssd downloader, check custom_sd_root)");
+    return;
+  }
+  char len[8];
+  uint32_t played = DFPlayer.isPlaying() ? DFPlayer.playingForMs() / 1000 : 0;
+  TrackIndex::formatTime(info->seconds, len, sizeof(len));
+  ctx.out("  title:  %s", info->title);
+  ctx.out("  by:     %s", info->artist);
+  ctx.out("  time:   %lu:%02lu / %s", (unsigned long)(played / 60), (unsigned long)(played % 60), len);
+  if (TrackIndex::rotation(f) >= 0)
+    ctx.out("  card:   position %u (card shift %d)", TrackIndex::cardPosition(f, t), TrackIndex::rotation(f));
+}
+
+static const ArgSpec SPEAKER_SHIFT_ARGS[] = { { "n", ARG_INT, -1, 99, true, 0, nullptr, "files in front: 1 = one too many first, 0 = sorted card, -1 = off; none = show" } };
+static void speakerShift(const ParsedArgs& a, CmdContext& ctx) {
+  uint8_t f = DFPlayer.currentFolder();
+  if (a.has(0)) {
+    TrackIndex::setRotation(f, (int16_t)a.num(0));
+    ctx.log("folder %02u card shift -> %ld (until reboot; permanent: CARD_ORDER_FIX in Track_Index.h)", f, (long)a.num(0));
+  }
+  int16_t r = TrackIndex::rotation(f);
+  if (r < 0) { ctx.out("folder %02u: no card-order fix - track numbers are sent as they are", f); return; }
+  ctx.out("folder %02u: card shift %d - file -> card position:", f, r);
+  uint8_t shown = 0;
+  for (uint16_t i = 0; i < TRACK_COUNT && shown < 4; i++)
+    if (TRACKS[i].folder == f) { ctx.out("  %03u -> %u", TRACKS[i].track, TrackIndex::cardPosition(f, TRACKS[i].track)); shown++; }
+  ctx.out("  (try: audio speaker -p %u <n>, listen, adjust with --shift)", f);
+}
+
+static const ArgSpec SPEAKER_LIST_ARGS[] = { { "folder", ARG_INT, 1, 99, true, 2, nullptr, "SD folder; none = the current one" } };
+static void speakerList(const ParsedArgs& a, CmdContext& ctx) {
+  uint8_t folder = a.has(0) ? (uint8_t)a.num(0) : DFPlayer.currentFolder();
+  uint16_t n = TrackIndex::countIn(folder);
+  if (!n) { ctx.out("folder %02u: no index (no index.txt, or custom_sd_root is wrong)", folder); return; }
+  ctx.out("folder %02u: %u tracks", folder, n);
+  char len[8];
+  for (uint16_t i = 0; i < TRACK_COUNT; i++) {
+    const TrackInfo& t = TRACKS[i];
+    if (t.folder != folder) continue;
+    TrackIndex::formatTime(t.seconds, len, sizeof(len));
+    bool playing = DFPlayer.isPlaying() && DFPlayer.currentFolder() == folder && DFPlayer.currentTrack() == t.track;
+    ctx.out("  %03u %5s  %s%s", t.track, len, t.title, playing ? "  <- playing" : "");
+  }
 }
 static void speakerLoop(const ParsedArgs& a, CmdContext& ctx) {
   if (!speakerReady(ctx)) return;
   DFPlayer.playFolderLoop((uint8_t)a.num(0));
-  ctx.log("speaker: looping folder %ld", (long)a.num(0));
+  ctx.log("speaker: looping folder %02ld (%u tracks in the index)", (long)a.num(0), TrackIndex::countIn((uint8_t)a.num(0)));
+  logCurrentTrack(ctx);
 }
 static void speakerStop(const ParsedArgs&, CmdContext& ctx) {
   if (!speakerReady(ctx)) return;
@@ -330,6 +408,18 @@ static const CommandDef D_SPEAKER_LOOP   = { "loop",   "loop all tracks of a fol
   SHELL_LIST(SPEAKER_LOOP_ARGS), SHELL_NONE, "audio speaker -l 2", nullptr, speakerLoop };
 static const CommandDef D_SPEAKER_STOP   = { "stop",   "stop (pause - DFPlayer has no hard stop)", "-s --stop",
   SHELL_NONE, SHELL_NONE, nullptr, nullptr, speakerStop };
+static const CommandDef D_SPEAKER_INFO = { "info", "what is playing: title, artist, time", "-i --info",
+  SHELL_NONE, SHELL_NONE, "audio speaker -i", nullptr, speakerInfo };
+static const CommandDef D_SPEAKER_LIST = { "list", "tracks of a folder (from the SD index)", "-ls --list",
+  SHELL_LIST(SPEAKER_LIST_ARGS), SHELL_NONE, "audio speaker -ls 2",
+  "Names come from the index.txt files next to the MP3s (microssd tool),\n"
+  "built into the firmware on every 'pio run' (custom_sd_root).", speakerList };
+static const CommandDef D_SPEAKER_SHIFT = { "shift", "TEMP: card-order fix (which file the module plays first)", "-sh --shift",
+  SHELL_LIST(SPEAKER_SHIFT_ARGS), SHELL_NONE, "audio speaker --shift 1",
+  "This DFPlayer clone plays the Nth file in CARD order, not '00N'.\n"
+  "Shift 1 = one file too many in front (Shout on the current card).\n"
+  "Changes last until reboot; the default is CARD_ORDER_FIX in\n"
+  "include/Audio/Track_Index.h. Set 0 there once the card is sorted.", speakerShift };
 static const CommandDef D_SPEAKER_RESUME = { "resume", "continue after stop", "-r --resume",
   SHELL_NONE, SHELL_NONE, nullptr, nullptr, speakerResume };
 static const CommandDef D_SPEAKER_VOLUME = { "volume", "set / step / show the volume (0..30), saved", "-v --volume",
@@ -343,10 +433,11 @@ FnCommand cmdSpeakerStatus(D_SPEAKER_STATUS);
 FnCommand cmdSpeakerPlay(D_SPEAKER_PLAY), cmdSpeakerNext(D_SPEAKER_NEXT), cmdSpeakerBack(D_SPEAKER_BACK);
 FnCommand cmdSpeakerLoop(D_SPEAKER_LOOP), cmdSpeakerStop(D_SPEAKER_STOP), cmdSpeakerResume(D_SPEAKER_RESUME);
 FnCommand cmdSpeakerVolume(D_SPEAKER_VOLUME);
+FnCommand cmdSpeakerInfo(D_SPEAKER_INFO), cmdSpeakerList(D_SPEAKER_LIST), cmdSpeakerShift(D_SPEAKER_SHIFT);
 
 Command* const SPEAKER_CMDS[] = {
   &cmdSpeakerPlay, &cmdSpeakerNext, &cmdSpeakerBack, &cmdSpeakerLoop,
-  &cmdSpeakerStop, &cmdSpeakerResume, &cmdSpeakerVolume,
+  &cmdSpeakerStop, &cmdSpeakerResume, &cmdSpeakerVolume, &cmdSpeakerInfo, &cmdSpeakerList, &cmdSpeakerShift,
 };
 CommandGroup speakerGroup("speaker", "DFPlayer Mini MP3 from the SD card", SPEAKER_CMDS, SHELL_COUNT(SPEAKER_CMDS),
   "MP3s from the SD card: folders 01..99, files 001..255 (doc/SD_CARD.md).\n"

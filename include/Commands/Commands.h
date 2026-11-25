@@ -7,6 +7,7 @@
 
     audio      Cmd_Audio.h     audio buzzer ... / audio speaker ...
     lights     Cmd_Lights.h    lights button|strip|ring ... / lights clear
+    relay      Cmd_Relay.h     relay on|off|toggle
     settings   Cmd_Settings.h  settings -p|-n|-b|-l
     sp dp tp hold mode status brightness    Cmd_System.h
     help / man / version       built into the shell
@@ -21,6 +22,7 @@
 // ── step 1: command files ───────────────────────────────────────────────────
 #include "Commands/Cmd_Audio.h"
 #include "Commands/Cmd_Lights.h"
+#include "Commands/Cmd_Relay.h"
 #include "Commands/Cmd_Settings.h"
 #include "Commands/Cmd_System.h"
 
@@ -28,6 +30,7 @@
 Command* const SHELL_COMMANDS[] = {
   &audioGroup,
   &lightsGroup,
+  &cmdRelay,
   &settingsGroup,
   &cmdBrightness,
   &cmdSP, &cmdDP, &cmdTP, &cmdHold,

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Discobox 3D viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; font-family: Helvetica, Arial, sans-serif; background: #dcebf8; color: #1c2b3a; overflow: hidden; }
+  #wrap { display: flex; height: 100%; }
+  #side { width: 300px; background: #fff; border-right: 1px solid #c9d7e6; overflow-y: auto; padding: 10px 12px; box-sizing: border-box; font-size: 13px; }
+  #view { flex: 1; position: relative; }
+  canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  h1 { font-size: 17px; margin: 0 0 6px; }
+  h2 { font-size: 13px; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: .04em; color: #4a6075; }
+  .tabs button, .views button { padding: 5px 9px; margin: 0 4px 4px 0; border: 1px solid #9fb3c8; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .tabs button.active { background: #1c2b3a; color: #fff; border-color: #1c2b3a; }
+  #note { font-size: 12px; color: #4a6075; margin: 6px 0; line-height: 1.35; }
+  label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0003; flex: none; }
+  details { margin: 0 0 2px 0; }
+  summary { cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+  details label { padding-left: 24px; font-size: 12px; color: #355; }
+  #hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: #3b556e; background: #ffffffb0; padding: 3px 8px; border-radius: 4px; }
+  #info { position: absolute; right: 10px; top: 8px; font-size: 12px; color: #3b556e; background: #ffffffb0; padding: 3px 8px; border-radius: 4px; }
+  input[type=range] { width: 100%; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="side">
+    <h1>Discobox 3D viewer</h1>
+    <div class="tabs" id="tabs"></div>
+    <div id="note"></div>
+    <h2>View</h2>
+    <div class="views">
+      <button data-v="iso">Iso</button><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="top">Top</button><button data-v="back">Back</button>
+    </div>
+    <h2>Shell see-through</h2>
+    <input type="range" id="shellAlpha" min="0.1" max="1" step="0.05" value="1">
+    <h2>Show / hide</h2>
+    <div style="margin-bottom:4px"><button id="allOn">all on</button> <button id="allOff">all off</button></div>
+    <div id="groups"></div>
+  </div>
+  <div id="view"><canvas id="c"></canvas><div id="hint">drag = rotate · right-drag / shift-drag = move · wheel = zoom · double-click = reset</div><div id="info"></div></div>
+</div>
+<script>
+/*__DATA__*/
+</script>
+<script>
+"use strict";
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2", { antialias: true });
+if (!gl) document.body.innerHTML = "<p style='padding:20px'>WebGL2 is not available in this browser.</p>";
+
+// ---------- tiny matrix helpers (column-major) ----------
+const M = {
+  persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a,0,0,0, 0,t,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0]; },
+  look(e, c, u) {
+    let z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x);
+    return [x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -dot(x,e),-dot(y,e),-dot(z,e),1];
+  },
+  mul(a, b) { const o = new Array(16).fill(0); for (let i=0;i<4;i++) for (let j=0;j<4;j++) for (let k=0;k<4;k++) o[j*4+i] += a[k*4+i]*b[j*4+k]; return o; }
+};
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];} function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function norm(a){const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];}
+
+// ---------- shaders: flat shading from screen-space derivatives ----------
+const VS = `#version 300 es
+in vec3 p; uniform mat4 mvp; uniform mat4 mv; out vec3 vp;
+void main(){ vec4 q = mv * vec4(p,1.0); vp = q.xyz; gl_Position = mvp * vec4(p,1.0); }`;
+const FS = `#version 300 es
+precision highp float; in vec3 vp; uniform vec3 col; uniform float alpha; uniform vec3 keyDir; uniform vec3 rimDir; out vec4 o;
+void main(){
+  vec3 n = normalize(cross(dFdx(vp), dFdy(vp)));
+  if (n.z < 0.0) n = -n;                                   // two-sided
+  float kd = max(dot(n, keyDir), 0.0), rd = max(dot(n, rimDir), 0.0);
+  vec3 h = normalize(keyDir + vec3(0,0,1)); float sp = pow(max(dot(n,h),0.0), 28.0) * 0.25;
+  vec3 c = col * (0.32 + 0.78 * kd) * vec3(1.03,0.99,0.93) + 0.10 * rd * vec3(0.55,0.65,0.9) + sp;
+  o = vec4(clamp(c,0.0,1.0), alpha);
+}`;
+function sh(t, s){ const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(x); return x; }
+const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+const U = n => gl.getUniformLocation(prog, n);
+const loc = { mvp: U("mvp"), mv: U("mv"), col: U("col"), alpha: U("alpha"), key: U("keyDir"), rim: U("rimDir") };
+
+function b64(s, T) { const bin = atob(s), u8 = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i); return new T(u8.buffer); }
+
+// ---------- state ----------
+let cur = null, parts = [], visible = {}, groupsOn = {};
+const cam = { yaw: -0.55, pitch: 0.42, dist: 900, tx: 0, ty: 0, tz: 130 };
+const VIEWS = { iso: [-0.55, 0.42], front: [0, 0.05], side: [-Math.PI/2, 0.05], top: [0, 1.5], back: [Math.PI, 0.1] };
+function resetCam() { cam.yaw = -0.55; cam.pitch = 0.42; cam.dist = cur.dist || 900; cam.tx = 0; cam.ty = 0; cam.tz = cur.tz || 130; }
+
+function loadVersion(v) {
+  cur = v; parts.forEach(p => { gl.deleteVertexArray(p.vao); });
+  parts = v.parts.map(p => {
+    const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, b64(p.v, Float32Array), gl.STATIC_DRAW);
+    const a = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 3, gl.FLOAT, false, 0, 0);
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); const idx = b64(p.i, Uint32Array); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+    return { name: p.n, group: p.g, col: p.c.map(x => x / 255), vao, count: idx.length };
+  });
+  visible = {}; groupsOn = {};
+  const hidden = v.hiddenGroups || [];
+  parts.forEach(p => { groupsOn[p.group] = !hidden.includes(p.group); });
+  parts.forEach(p => { visible[p.name] = true; });
+  buildPanel(); resetCam();
+  document.getElementById("note").textContent = v.note;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.id === v.id));
+  location.hash = v.id;
+  const tri = parts.reduce((s, p) => s + p.count / 3, 0);
+  document.getElementById("info").textContent = parts.length + " parts · " + Math.round(tri / 1000) + "k triangles · mm";
+}
+function buildPanel() {
+  const root = document.getElementById("groups"); root.innerHTML = "";
+  const groups = [...new Set(parts.map(p => p.group))];
+  groups.forEach(g => {
+    const members = parts.filter(p => p.group === g);
+    const d = document.createElement("details");
+    const s = document.createElement("summary");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = groupsOn[g];
+    cb.onclick = e => { e.stopPropagation(); groupsOn[g] = cb.checked; };
+    cb.dataset.g = g;
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = "rgb(" + members[0].col.map(x => Math.round(x * 255)).join(",") + ")";
+    s.append(cb, sw, document.createTextNode(g + " (" + members.length + ")")); d.append(s);
+    members.forEach(p => {
+      const l = document.createElement("label"); const c2 = document.createElement("input"); c2.type = "checkbox"; c2.checked = true;
+      c2.onchange = () => { visible[p.name] = c2.checked; }; l.append(c2, document.createTextNode(p.name)); d.append(l);
+    });
+    root.append(d);
+  });
+}
+function setAll(on) { Object.keys(groupsOn).forEach(g => groupsOn[g] = on); document.querySelectorAll("#groups > details > summary > input").forEach(c => c.checked = on); }
+
+// ---------- UI ----------
+const tabs = document.getElementById("tabs");
+VERSIONS.forEach(v => { const b = document.createElement("button"); b.textContent = v.label; b.dataset.id = v.id; b.onclick = () => loadVersion(v); tabs.append(b); });
+document.getElementById("allOn").onclick = () => setAll(true); document.getElementById("allOff").onclick = () => setAll(false);
+document.querySelectorAll(".views button").forEach(b => b.onclick = () => { const v = VIEWS[b.dataset.v]; cam.yaw = v[0]; cam.pitch = v[1]; });
+let drag = null;
+canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointerup", () => drag = null);
+canvas.addEventListener("pointermove", e => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan) { const k = cam.dist * 0.0012; cam.tx -= (Math.cos(cam.yaw) * dx) * k; cam.ty -= (Math.sin(cam.yaw) * dx) * k; cam.tz += dy * k; }
+  else { cam.yaw -= dx * 0.008; cam.pitch = Math.max(-1.55, Math.min(1.55, cam.pitch + dy * 0.008)); }
+});
+canvas.addEventListener("wheel", e => { e.preventDefault(); cam.dist *= Math.exp(e.deltaY * 0.001); cam.dist = Math.max(120, Math.min(3000, cam.dist)); }, { passive: false });
+canvas.addEventListener("dblclick", resetCam); canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+// ---------- draw ----------
+function frame() {
+  const w = canvas.clientWidth * devicePixelRatio, h = canvas.clientHeight * devicePixelRatio;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h); gl.clearColor(0.86, 0.92, 0.98, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.useProgram(prog);
+  const cp = Math.cos(cam.pitch), eye = [cam.tx + cam.dist * cp * Math.sin(cam.yaw), cam.ty - cam.dist * cp * Math.cos(cam.yaw), cam.tz + cam.dist * Math.sin(cam.pitch)];
+  const mv = M.look(eye, [cam.tx, cam.ty, cam.tz], [0, 0, 1]);
+  const mvp = M.mul(M.persp(0.62, w / h, 20, 6000), mv);
+  gl.uniformMatrix4fv(loc.mvp, false, mvp); gl.uniformMatrix4fv(loc.mv, false, mv);
+  gl.uniform3fv(loc.key, norm([-0.45, 0.55, 0.7])); gl.uniform3fv(loc.rim, norm([0.7, -0.3, 0.3]));
+  const sa = parseFloat(document.getElementById("shellAlpha").value);
+  const pass = (transparent) => parts.forEach(p => {
+    if (!groupsOn[p.group] || !visible[p.name]) return;
+    const isShell = p.group.indexOf("Shell") === 0, a = isShell ? sa : 1;
+    if ((a < 1) !== transparent) return;
+    gl.uniform3fv(loc.col, p.col); gl.uniform1f(loc.alpha, a);
+    gl.bindVertexArray(p.vao); gl.drawElements(gl.TRIANGLES, p.count, gl.UNSIGNED_INT, 0);
+  });
+  gl.disable(gl.BLEND); pass(false);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); pass(true); gl.depthMask(true);
+  requestAnimationFrame(frame);
+}
+const startId = location.hash.slice(1);
+loadVersion(VERSIONS.find(v => v.id === startId) || VERSIONS[0]);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

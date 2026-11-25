@@ -86,7 +86,7 @@ inline void mock_reset() {
 inline unsigned long millis()                         { return _mock_millis_ref(); }
 inline void          delay(unsigned long)             {}
 inline int           digitalRead(uint8_t pin)        { return _mock_pins_ref()[pin & 63]; }
-inline void          digitalWrite(uint8_t, uint8_t)  {}
+inline void          digitalWrite(uint8_t pin, uint8_t v) { _mock_pins_ref()[pin & 63] = v; }
 inline void          pinMode(uint8_t, uint8_t)       {}
 inline void          analogWrite(uint8_t, int)        {}
 inline void          tone(uint8_t, unsigned int,

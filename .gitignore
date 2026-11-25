@@ -14,3 +14,9 @@ Old/*
 # Copyrighted melodies — keep local only (ExampleSong_song.h stays tracked)
 include/Buzzer/Songs/*
 !include/Buzzer/Songs/ExampleSong_song.h
+
+# Generated before every build from the SD card's index.txt (scripts/gen_track_index.py)
+include/Audio/Track_Index_Data.h
+
+# GitHub Pages build output (site/build_site.py)
+_site/

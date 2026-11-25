@@ -1,0 +1,17 @@
+Item,Qty,Price_CHF,Link,Notes
+Cable gland / strain relief for the mains cable (PG11 or M20),1,3.00,,Estimate; the extension cable (cut: Swiss plug end) goes through it into the mains compartment (option A)
+Mains fuse holder 250 V AC (inline or panel) + 5x20 mm fuses T2A-T3.15A,1,7.00,,Estimate; car blade fuses are NOT allowed on 230 V; size by the load on outlet B
+Swiss Type 13 panel outlet for the disco ball,1,13.00,https://alltron.ch/de/product/1135733,Brennenstuhl IP55 about 13.00 (Steffen IP55 about 9.60 is cheaper if the cutout suits); check the cutout size before printing
+GX16-4 aviation connector sets (plug + socket) for the strip cable,2,8.00,https://www.ebay.de/itm/267365568974,eBay China seller; sets about 1-4 EUR each plus shipping 3-7 EUR; rated about 5 A; 4-core 1.0 mm2 cable
+GX12-2 aviation connector sets (plug + socket) for the button cable,2,6.00,https://www.ebay.de/itm/372910768698,eBay: 5 sets about 14.59 EUR (about 2.9 per set); single sets about 1.5-1.7 EUR plus shipping
+4-core flexible cable 1.0 mm2 (H05VV-F 4G1.0) 5 m,1,12.00,https://ch.rs-online.com/web/p/netzkabel/0606157,RS sells 50 m rolls (too much); buy 5 m from a Swiss electrical shop; German price about 1-2 EUR/m; retail price estimated
+M3 heat-set inserts (100 pcs),1,10.00,https://www.prusa3d.com/en/product/threaded-inserts-m3-standard-100-pcs/,Prusa 10.99 USD; eBay about 14 EUR for 110; for the lid screws and panel joints
+M3 screw assortment (countersunk and pan head),1,8.00,,Estimate; any hardware store
+Brass hex standoffs M3 for the Arduino (4 pcs),1,4.00,https://www.ebay.de/itm/304007057894,eBay M3 brass standoffs from about 1.3 EUR each; estimate
+PETG filament 1 kg (Sunlu PETG or similar),2,40.00,https://www.digitec.ch/en/s1/product/sunlu-petg-filament-175mm-1kg-petg-175-mm-1000-g-3d-printer-filament-44733481,CHF price not shown in search; about 18-22 per spool estimated; alternatives: Bambu PETG HF (about 26 EUR) or Prusament PETG (about 39-48 CHF); skip if you already have filament
+74AHCT125 (SN74AHCT125N DIP-14) + socket + resistors 220-470 ohm + 100 nF caps,1,4.00,https://www.digikey.ch/en/products/detail/texas-instruments/SN74AHCT125N/375798,Digikey.ch chip 0.64 CHF at 1 pc; rest estimated; for the strip data line
+Wago 221 connectors + heat shrink + 18 AWG wire (small amounts),1,12.00,https://www.hornbach.de/s/Wago%20221,Wago 221 packs about 13-15 EUR for 50; estimate for the whole line; also use it to hardwire the brick after cutting its Europlug
+Rubber feet (4 pcs),1,4.00,,Estimate
+TOTAL (all lines above),,131.00,,Option A: hardwire the cut extension cable. Mix of looked-up and estimated prices; confirm before ordering
+ALTERNATIVE option B (removable mains cord) instead of the gland and mains fuse holder: C14 inlet with fuse 5.93 (https://ch.rs-online.com/web/p/iec-steckverbinder/0481639) + Swiss to C13 cord 14.90 (https://alltron.ch/de/product/268730) + 250 V AC fuse 3,,,,Adds about 14 CHF to the total
+ALREADY OWNED (not in the total): Swiss plug / extension cable, in-house cable (for fixed wiring inside only), car fuses with holder (12 V line only), 12 V brick, relay module, speakers etc (see BOM.csv),,,,

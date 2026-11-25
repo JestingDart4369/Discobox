@@ -52,12 +52,13 @@ static void statusShow(const ParsedArgs&, CmdContext& ctx) {
           Buzzer.songName(), modeParty.isRunning() ? "running" : "off",
           Buzzer.isPlaying() ? "playing" : "silent", Buzzer.isMuted() ? "muted" : "on",
           Buzzer.cuePackName(), (unsigned)Buzzer.cueGapBefore(), (unsigned)Buzzer.cueGapAfter());
-  ctx.out("speaker:  %s | folder %u track %u",
-          !DFPlayer.isOK() ? "not found" : DFPlayer.isPlaying() ? "playing" : "ready",
-          (unsigned)DFPlayer.currentFolder(), (unsigned)DFPlayer.currentTrack());
+  char track[96];
+  TrackIndex::describe(DFPlayer.currentFolder(), DFPlayer.currentTrack(), track, sizeof(track));
+  ctx.out("speaker:  %s | %s", !DFPlayer.isOK() ? "not found" : DFPlayer.isPlaying() ? "playing" : "ready", track);
   ctx.out("volume:   speaker %u/30, music %u/8, cues %u/8, master %u %%",
           (unsigned)Volume.level(VolumeManager::SPEAKER), (unsigned)Volume.level(VolumeManager::MUSIC),
           (unsigned)Volume.level(VolumeManager::CUES), (unsigned)Volume.master());
+  ctx.out("relay:    %s", relay1.isOn() ? "ON" : "off");
   ctx.out("bright:   ring %u, strip %u, button %u, master %u",
           (unsigned)Brightness.level(BrightnessManager::RING), (unsigned)Brightness.level(BrightnessManager::STRIP),
           (unsigned)Brightness.level(BrightnessManager::BUTTON), (unsigned)Brightness.master());

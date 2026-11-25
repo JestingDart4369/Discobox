@@ -23,6 +23,10 @@ inline bool&    _mock_dfp_begin_ok()     { static bool    v = true;  return v; }
 inline bool&    _mock_dfp_has_event()    { static bool    v = false; return v; }
 inline uint8_t& _mock_dfp_event_type()  { static uint8_t v = 0;     return v; }
 inline uint8_t& _mock_dfp_event_data()  { static uint8_t v = 0;     return v; }
+// What the controller last asked the module to play (0 = nothing yet)
+inline uint8_t& mock_dfplayer_last_folder() { static uint8_t v = 0; return v; }
+inline uint8_t& mock_dfplayer_last_track()  { static uint8_t v = 0; return v; }
+inline uint8_t& mock_dfplayer_loop_folder() { static uint8_t v = 0; return v; }   // loopFolder() used?
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 /// Make the next begin() call return ok (true) or not-found (false).
@@ -41,6 +45,9 @@ inline void mock_dfplayer_reset() {
   _mock_dfp_has_event()   = false;
   _mock_dfp_event_type()  = 0;
   _mock_dfp_event_data()  = 0;
+  mock_dfplayer_last_folder() = 0;
+  mock_dfplayer_last_track()  = 0;
+  mock_dfplayer_loop_folder() = 0;
 }
 
 // ── Stub class ───────────────────────────────────────────────────────────────
@@ -66,6 +73,6 @@ public:
 
   void pause()                           {}
   void start()                           {}
-  void playFolder(uint8_t, uint8_t)     {}
-  void loopFolder(uint8_t)              {}
+  void playFolder(uint8_t f, uint8_t t) { mock_dfplayer_last_folder() = f; mock_dfplayer_last_track() = t; }
+  void loopFolder(uint8_t f)            { mock_dfplayer_loop_folder() = f; }
 };

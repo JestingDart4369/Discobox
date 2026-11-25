@@ -248,6 +248,27 @@ class DFPlayerController {
 }
 
 
+/' ── Relay (lib/Relay/Relay.h) ── '/
+
+class Relay {
+    +Relay(pin: uint8_t, activeLow: bool = true)
+    +begin() : void
+    +set(on: bool) : void
+    +on() : void
+    +off() : void
+    +toggle() : void
+    +setEnabled(enabled: bool) : void
+    +isEnabled() : bool
+    +isOn() : bool
+    +pin() : uint8_t
+    +activeLow() : bool
+    -_on : bool
+    -_enabled : bool
+    -_started : bool
+    note "relay1 = Relay(D7)\noff after begin(); setEnabled(false)\nignores on() (Settings menu)" as N_Relay
+}
+
+
 /' ================================================================
    MODES LAYER
    ================================================================ '/
@@ -340,6 +361,9 @@ class ModeManager {
     -flashColor(c: uint32_t) : void
 }
 
+PartyMode ..> Relay : relay1.on() on SP start,\noff on stop / Exit()
+PartyMode ..> DFPlayerController : playFolder(2, 1)
+
 ModeBase <|-- PartyMode
 ModeBase <|-- LinkClick
 ModeBase <|-- Mode3
@@ -386,6 +410,13 @@ class VolumeSetting {
     -{static} STEP : uint8_t
 }
 
+class RelaySetting {
+    +name() : const char*
+    +bump() : void
+    #logValue() : void
+    note "toggles relay1.setEnabled()\nand saves (persisted v5)" as N_RelaySetting
+}
+
 class SettingsMenu {
     +SettingsMenu(list: SettingItem**, count: uint8_t)
     +begin() : void
@@ -405,6 +436,8 @@ SettingItem <|-- BrightnessSetting
 SettingItem <|-- CueMuteSetting
 SettingItem <|-- CueThemeSetting
 SettingItem <|-- VolumeSetting
+SettingItem <|-- RelaySetting
+RelaySetting ..> Relay : relay1.setEnabled()
 SettingsMenu o-- SettingItem
 VolumeSetting ..> DFPlayerController : DFPlayer.setVolume()
 
@@ -422,6 +455,8 @@ struct PersistedSettings {
     +muted : uint8_t
     +brightness : uint8_t
     +volume : uint8_t
+    +... (v3 brightness levels, v4 volumes)
+    +relayEnabled : uint8_t   <<v5>>
 }
 
 class SettingsStore {

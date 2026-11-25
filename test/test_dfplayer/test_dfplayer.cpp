@@ -301,6 +301,202 @@ void test_step_rate_limited_below_500ms() {
 }
 
 // ── Runner ───────────────────────────────────────────────────────────────────
+// ── Track index: skip tracks that are missing on the card ───────────────────
+// Fake index for folder 2: tracks 1, 2, 3, 9, 13 exist (4..8 and 10..12 missing).
+static int16_t fakeIndex(uint8_t folder, uint8_t track, int8_t dir) {
+  static const uint8_t EXIST[] = { 1, 2, 3, 9, 13 };
+  if (folder != 2) { int16_t t = track + dir; return (t >= 1) ? t : -1; }
+  int16_t best = -1;
+  for (uint8_t e : EXIST) {
+    if (dir > 0 && e > track && (best < 0 || e < best)) best = e;
+    if (dir < 0 && e < track && (best < 0 || e > best)) best = e;
+  }
+  return best;
+}
+
+static void startIndexed(DFPlayerController& ctrl, uint8_t track) {
+  mock_dfplayer_set_begin_ok(true);
+  ctrl.begin(20);
+  ctrl.setTrackIndex(fakeIndex);
+  ctrl.playFolder(2, track);
+}
+
+void test_index_next_skips_gap() {
+  DFPlayerController ctrl(ts);
+  startIndexed(ctrl, 3);
+  ctrl.next();
+  TEST_ASSERT_EQUAL(9, ctrl.currentTrack());     // 4..8 don't exist
+}
+
+void test_index_previous_skips_gap() {
+  DFPlayerController ctrl(ts);
+  startIndexed(ctrl, 13);
+  ctrl.previous();
+  TEST_ASSERT_EQUAL(9, ctrl.currentTrack());     // 10..12 don't exist
+}
+
+void test_index_previous_stays_at_first() {
+  DFPlayerController ctrl(ts);
+  startIndexed(ctrl, 1);
+  ctrl.previous();
+  TEST_ASSERT_EQUAL(1, ctrl.currentTrack());
+}
+
+void test_index_next_wraps_after_last() {
+  DFPlayerController ctrl(ts);
+  startIndexed(ctrl, 13);
+  ctrl.next();
+  TEST_ASSERT_EQUAL(1, ctrl.currentTrack());     // last -> first, no missing file asked for
+}
+
+void test_index_auto_next_skips_gap() {
+  DFPlayerController ctrl(ts);
+  startIndexed(ctrl, 9);
+  ctrl.setAutoNext(true);
+  mock_dfplayer_send_event(DFPlayerPlayFinished);
+  mock_set_millis(600);
+  ctrl.step();
+  TEST_ASSERT_EQUAL(13, ctrl.currentTrack());    // 9 finished -> 13 (10..12 missing)
+  TEST_ASSERT_TRUE(ctrl.trackChanged());
+}
+
+void test_index_unindexed_folder_plain_steps() {
+  DFPlayerController ctrl(ts);
+  mock_dfplayer_set_begin_ok(true);
+  ctrl.begin(20);
+  ctrl.setTrackIndex(fakeIndex);
+  ctrl.playFolder(5, 4);                         // folder 5 has no index
+  ctrl.next();
+  TEST_ASSERT_EQUAL(5, ctrl.currentTrack());
+}
+
+// ── Folder loop: the DFPlayer moves on by itself, we follow its "finished" events ──
+static void startLoop(DFPlayerController& ctrl) {
+  mock_dfplayer_set_begin_ok(true);
+  ctrl.begin(20);
+  ctrl.setTrackIndex(fakeIndex);
+  mock_set_millis(1000);
+  ctrl.playFolderLoop(2);
+}
+static void finishAt(DFPlayerController& ctrl, unsigned long ms) {
+  mock_dfplayer_send_event(DFPlayerPlayFinished);
+  mock_set_millis(ms);
+  ctrl.step();
+}
+
+void test_loop_starts_at_first_track() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  TEST_ASSERT_TRUE(ctrl.isLooping());
+  TEST_ASSERT_EQUAL(1, ctrl.currentTrack());
+}
+
+void test_loop_finished_means_next_song() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  finishAt(ctrl, 200000);
+  TEST_ASSERT_EQUAL(2, ctrl.currentTrack());
+  TEST_ASSERT_TRUE(ctrl.isPlaying());              // NOT stopped
+  TEST_ASSERT_TRUE(ctrl.trackChanged());
+  TEST_ASSERT_EQUAL(0, ctrl.playingForMs());       // clock restarted for the new song
+}
+
+void test_loop_skips_gap_and_wraps() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  finishAt(ctrl, 200000);   // 1 -> 2
+  finishAt(ctrl, 400000);   // 2 -> 3
+  finishAt(ctrl, 600000);   // 3 -> 9  (4..8 missing)
+  TEST_ASSERT_EQUAL(9, ctrl.currentTrack());
+  finishAt(ctrl, 800000);   // 9 -> 13
+  finishAt(ctrl, 1000000);  // 13 -> 1 (wrap, like the DFPlayer)
+  TEST_ASSERT_EQUAL(1, ctrl.currentTrack());
+  TEST_ASSERT_TRUE(ctrl.isLooping());
+}
+
+void test_loop_duplicate_finished_ignored() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  finishAt(ctrl, 200000);   // 1 -> 2
+  finishAt(ctrl, 200600);   // same event again 0.6 s later (clone quirk)
+  TEST_ASSERT_EQUAL(2, ctrl.currentTrack());
+}
+
+void test_loop_survives_next() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  ctrl.next();                                     // manual skip inside the loop
+  TEST_ASSERT_EQUAL(2, ctrl.currentTrack());
+  TEST_ASSERT_TRUE(ctrl.isLooping());
+  finishAt(ctrl, 200000);                          // the firmware continues the loop
+  TEST_ASSERT_EQUAL(3, ctrl.currentTrack());
+  TEST_ASSERT_TRUE(ctrl.isPlaying());
+}
+
+void test_loop_is_firmware_driven() {
+  // The DFPlayer's own loop (loopFolder) plays in card order, not number order
+  // (on the Discobox card it started with 044). So the firmware must start
+  // EVERY song itself, by its number.
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  TEST_ASSERT_EQUAL(0, mock_dfplayer_loop_folder());        // loopFolder() never used
+  TEST_ASSERT_EQUAL(2, mock_dfplayer_last_folder());
+  TEST_ASSERT_EQUAL(1, mock_dfplayer_last_track());         // started with 001 by number
+  finishAt(ctrl, 200000);
+  TEST_ASSERT_EQUAL(2, mock_dfplayer_last_track());         // next song requested by number
+  finishAt(ctrl, 400000);
+  finishAt(ctrl, 600000);
+  TEST_ASSERT_EQUAL(9, mock_dfplayer_last_track());         // gap skipped: 3 -> 9
+  TEST_ASSERT_EQUAL(ctrl.currentTrack(), mock_dfplayer_last_track());   // shown == played
+}
+
+void test_play_folder_ends_loop() {
+  DFPlayerController ctrl(ts);
+  startLoop(ctrl);
+  ctrl.playFolder(2, 3);
+  TEST_ASSERT_FALSE(ctrl.isLooping());
+  finishAt(ctrl, 200000);
+  TEST_ASSERT_FALSE(ctrl.isPlaying());             // single track: finished = stopped
+  TEST_ASSERT_EQUAL(3, ctrl.currentTrack());
+}
+
+// ── Card-order map: file number -> what is SENT to the module ───────────────
+static uint8_t rotateMap(uint8_t folder, uint8_t track) {      // like the real fix, files 1..13 of fakeIndex
+  static const uint8_t EXIST[] = { 1, 2, 3, 9, 13 };          // card order: 13 first, then 1, 2, 3, 9
+  if (folder != 2) return track;
+  for (uint8_t r = 0; r < 5; r++) if (EXIST[r] == track) return (uint8_t)(((r + 1) % 5) + 1);
+  return track;
+}
+
+void test_map_translates_every_play() {
+  DFPlayerController ctrl(ts);
+  mock_dfplayer_set_begin_ok(true);
+  ctrl.begin(20);
+  ctrl.setTrackIndex(fakeIndex);
+  ctrl.setTrackMap(rotateMap);
+  ctrl.playFolder(2, 1);
+  TEST_ASSERT_EQUAL(1, ctrl.currentTrack());                  // logic keeps the FILE number
+  TEST_ASSERT_EQUAL(2, mock_dfplayer_last_track());           // module gets the CARD position
+  ctrl.next();                                                // 1 -> 2
+  TEST_ASSERT_EQUAL(3, mock_dfplayer_last_track());
+  ctrl.playFolder(2, 13);
+  TEST_ASSERT_EQUAL(1, mock_dfplayer_last_track());           // 13 lies first on the card
+  mock_set_millis(1000);
+  ctrl.playFolderLoop(2);                                     // loop also goes through the map
+  TEST_ASSERT_EQUAL(2, mock_dfplayer_last_track());
+  finishAt(ctrl, 200000);
+  TEST_ASSERT_EQUAL(2, ctrl.currentTrack());
+  TEST_ASSERT_EQUAL(3, mock_dfplayer_last_track());
+}
+
+void test_no_map_sends_numbers() {
+  DFPlayerController ctrl(ts);
+  mock_dfplayer_set_begin_ok(true);
+  ctrl.begin(20);
+  ctrl.playFolder(2, 13);
+  TEST_ASSERT_EQUAL(13, mock_dfplayer_last_track());
+}
+
 int main() {
   UNITY_BEGIN();
 
@@ -340,6 +536,22 @@ int main() {
   RUN_TEST(test_step_no_auto_next_when_disabled);
   RUN_TEST(test_step_skipped_when_not_ok);
   RUN_TEST(test_step_rate_limited_below_500ms);
+
+  RUN_TEST(test_index_next_skips_gap);
+  RUN_TEST(test_index_previous_skips_gap);
+  RUN_TEST(test_index_previous_stays_at_first);
+  RUN_TEST(test_index_next_wraps_after_last);
+  RUN_TEST(test_index_auto_next_skips_gap);
+  RUN_TEST(test_index_unindexed_folder_plain_steps);
+  RUN_TEST(test_loop_starts_at_first_track);
+  RUN_TEST(test_loop_finished_means_next_song);
+  RUN_TEST(test_loop_skips_gap_and_wraps);
+  RUN_TEST(test_loop_duplicate_finished_ignored);
+  RUN_TEST(test_loop_survives_next);
+  RUN_TEST(test_loop_is_firmware_driven);
+  RUN_TEST(test_play_folder_ends_loop);
+  RUN_TEST(test_map_translates_every_play);
+  RUN_TEST(test_no_map_sends_numbers);
 
   return UNITY_END();
 }

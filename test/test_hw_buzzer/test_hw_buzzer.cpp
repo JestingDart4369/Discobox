@@ -36,12 +36,33 @@ static uint32_t pumpUntilSilent(uint32_t timeout_ms) {
   return timeout_ms + 1;
 }
 
+/// Marks a test that makes a SOUND: half a second of silence first, so you can
+/// hear where one test ends and the next begins, then a ">>> SOUND" line (-v).
+/// Tests without this line are pure logic checks and pass in milliseconds.
+static void announce(const char* what) {
+  delay(500);
+  char msg[96];
+  snprintf(msg, sizeof(msg), ">>> SOUND: %s", what);
+  TEST_MESSAGE(msg);
+}
+
 void setUp() {
   Buzzer.stop();
   Buzzer.autoNext(false);
   Buzzer.setCueGap(0, 0);
+  speaker.resetPwmFailures();
 }
-void tearDown() { Buzzer.stop(); }
+
+void tearDown() {
+  // Every test must end in silence: a note still sounding here would keep
+  // playing while the next tests already report PASSED.
+  bool stillSounding = speaker.isSounding();
+  Buzzer.stop();
+  TEST_ASSERT_FALSE_MESSAGE(stillSounding, "buzzer still sounding at the end of the test");
+  char msg[64];
+  snprintf(msg, sizeof(msg), "%u notes could not start (PwmOut.begin failed)", (unsigned)speaker.pwmFailures());
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(0, speaker.pwmFailures(), msg);
+}
 
 // ── speaker basics ──────────────────────────────────────────────────────────
 void test_midi_to_frequency() {
@@ -51,7 +72,7 @@ void test_midi_to_frequency() {
 }
 
 void test_tone_440_audible() {
-  TEST_MESSAGE("You should hear a 440 Hz beep (A4) for 0.5 s");
+  announce("440 Hz beep (A4) for 0.5 s");
   speaker.playTone(440, 500);
   // With BUZZER_PWM the tone only stops while step() runs (PwmOut has no
   // built-in duration) — so step() while waiting instead of delay().
@@ -80,7 +101,7 @@ void test_play_starts_song() {
 }
 
 void test_song_plays_full_length() {
-  TEST_MESSAGE("You should hear the C major scale up and down (~3.4 s)");
+  announce("C major scale up and down (~3.4 s)");
   Buzzer.play(0);
   uint32_t t = pumpUntilSilent(6000);
   char msg[80];
@@ -91,6 +112,7 @@ void test_song_plays_full_length() {
 }
 
 void test_stop_silences() {
+  announce("first notes of the scale, then stop after 0.3 s");
   Buzzer.play(0);
   pump(300);
   Buzzer.stop();
@@ -117,17 +139,19 @@ void test_select_out_of_range_ignored() {
 
 void test_auto_next_goes_to_next_song() {
   if (Buzzer.songCount() < 2) TEST_IGNORE_MESSAGE("only 1 song on this build");
+  announce("scale, then the start of song 1 (auto-next), stopped right away");
   Buzzer.autoNext(true);
   Buzzer.play(0);
   unsigned long t0 = millis();
   while (millis() - t0 < 6000 && Buzzer.songIndex() == 0) Buzzer.step();
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(1, Buzzer.songIndex(), "auto-next did not move to song 1");
   TEST_ASSERT_TRUE(Buzzer.isPlaying());
+  Buzzer.stop();                    // song 1 is long — don't let it run into the next tests
 }
 
 // ── UI cues ─────────────────────────────────────────────────────────────────
 void test_cue_plays_and_ends() {
-  TEST_MESSAGE("You should hear the 'press' cue");
+  announce("'press' cue");
   Buzzer.playCue("press");
   TEST_ASSERT_TRUE(Buzzer.isPlaying());
   TEST_ASSERT_TRUE_MESSAGE(pumpUntilSilent(2000) <= 2000, "cue did not finish within 2 s");
@@ -155,7 +179,7 @@ void test_mute_does_not_stop_songs() {
 }
 
 void test_cue_ducks_and_song_resumes() {
-  TEST_MESSAGE("Scale starts, gets interrupted by a cue, then continues");
+  announce("scale, interrupted by a cue, then continues");
   Buzzer.play(0);
   pump(800);                        // ~4 notes into the scale
   Buzzer.playCue("press");          // song paused, cue plays
@@ -167,6 +191,7 @@ void test_cue_ducks_and_song_resumes() {
 
 void test_cue_gap_delays_cue() {
   // With a 300 ms "before" gap the cue must start ~300 ms after playCue(), not at once.
+  announce("'press' cue after 0.3 s of silence");
   Buzzer.setCueGap(300, 0);
   unsigned long t0 = millis();
   Buzzer.playCue("press");
@@ -182,7 +207,7 @@ void test_cue_gap_delays_cue() {
 
 // ── volume (needs -DBUZZER_PWM, set in platformio.ini) ──────────────────────
 void test_music_volume_levels_audible() {
-  TEST_MESSAGE("Scale at music volume 8 (full), then 5, then 2 - should get quieter");
+  announce("scale at music volume 8 (full), then 5, then 2 - getting quieter");
   static const uint8_t LEVELS[] = { 8, 5, 2 };
   for (uint8_t i = 0; i < 3; i++) {
     Buzzer.setMusicVolume(LEVELS[i]);
@@ -195,7 +220,7 @@ void test_music_volume_levels_audible() {
 }
 
 void test_cue_volume_separate_from_music() {
-  TEST_MESSAGE("Scale at full volume, interrupted by a QUIET cue (level 2), then full again");
+  announce("scale at full volume, a QUIET cue (level 2) in between, then full again");
   Buzzer.setMusicVolume(SPEAKER_MAX_VOLUME);
   Buzzer.setCueVolume(2);
   Buzzer.play(0);

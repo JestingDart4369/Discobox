@@ -141,6 +141,10 @@ public:
   /** @brief true while a note is actually sounding (between note on and note off). */
   bool isSounding() const { return _noteOn; }
 
+  /** @brief How many notes could NOT be started (PwmOut.begin() failed). Always 0 with tone(). */
+  uint16_t pwmFailures() const { return _pwmFails; }
+  void resetPwmFailures() { _pwmFails = 0; }
+
   /** @brief Returns true while a song is in progress. */
   bool isPlaying() const { return _playing; }
 
@@ -241,6 +245,7 @@ private:
 #endif
   uint8_t  _volume    = SPEAKER_MAX_VOLUME;
   bool     _noteOn    = false;
+  uint16_t _pwmFails  = 0;      // see pwmFailures()
   uint32_t _noteOffAt = 0;
 
   /** @brief Start one note at the current volume; it ends after `ms` (checked in step()). */
@@ -251,7 +256,7 @@ private:
     }
 #if defined(BUZZER_PWM)
     _pwm.end();                                   // a running note is replaced
-    _pwm.begin((float)freq, SPEAKER_DUTY[_volume]);
+    if (!_pwm.begin((float)freq, SPEAKER_DUTY[_volume])) _pwmFails++;   // note stays silent
 #else
     tone(_pin, freq);
 #endif

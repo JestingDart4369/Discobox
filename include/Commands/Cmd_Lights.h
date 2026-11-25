@@ -24,7 +24,7 @@
     lights strip -l   / --led <n> <color>      ONE IC, others unchanged (n = 0..59)
     lights strip -fi  / --fadeic <n> <color>   fade ONE IC
     lights strip -i   / --ic <n> <color>       ONLY IC n lit, rest off (debug)
-    lights strip -fl  / --flicker [sec]        warm candle effect (default 4, max 30)
+    lights strip -fl  / --flicker [sec] [-s 1..5]  candle effect (default 4 s, strength 4)
     lights strip -wa  / --walk                 light ICs one by one (debug)
     lights strip -be  / --bench                time one disco frame (us)
     lights strip -d   / --disco                one random-colour frame
@@ -104,6 +104,9 @@ static const ArgSpec STRIP_IC_ARGS[] = {
   { "color", ARG_COLOR, 0, 0,                 false, 0, nullptr, "r g b, r,g,b or #hex" },
 };
 static const ArgSpec STRIP_FLICKER_ARGS[] = { { "sec", ARG_INT, 1, 30, true, 4, nullptr, "seconds (default 4)" } };
+static const FlagSpec STRIP_FLICKER_FLAGS[] = {
+  { "strength", 's', ARG_INT, 1, 5, 4, "1 = subtle ... 5 = strong" },
+};
 
 static void stripColor(const ParsedArgs& a, CmdContext& ctx) {
   uint8_t r, g, b;
@@ -163,10 +166,11 @@ static void stripIc(const ParsedArgs& a, CmdContext& ctx) {
 }
 static void stripFlicker(const ParsedArgs& a, CmdContext& ctx) {
   unsigned long sec = (unsigned long)a.num(0);
-  ctx.log("candle flicker for %lu s...", sec);
-  Strip.flickerBegin();
+  uint8_t strength = (uint8_t)a.flagNum(0);
+  ctx.log("candle flicker for %lu s, strength %u...", sec, strength);
+  Strip.flickerBegin(strength);
   unsigned long t0 = millis();
-  while (millis() - t0 < sec * 1000UL) { Strip.flickerUpdate(); delay(40); }
+  while (millis() - t0 < sec * 1000UL) { Strip.flickerUpdate(); delay(30); }
   Strip.clear();
   Strip.show();
 }
@@ -223,7 +227,10 @@ static const CommandDef D_STRIP_FADEIC = { "fadeic", "fade ONE IC to a colour", 
 static const CommandDef D_STRIP_IC    = { "ic", "ONLY IC n lit, rest off (debug)", "-i --ic",
   SHELL_LIST(STRIP_IC_ARGS), SHELL_NONE, "lights strip -i 0 255 0 0", nullptr, stripIc };
 static const CommandDef D_STRIP_FLICKER = { "flicker", "warm-white candle effect (blocks)", "-fl --flicker",
-  SHELL_LIST(STRIP_FLICKER_ARGS), SHELL_NONE, "lights strip -fl 10", nullptr, stripFlicker };
+  SHELL_LIST(STRIP_FLICKER_ARGS), SHELL_LIST(STRIP_FLICKER_FLAGS), "lights strip -fl 10 -s 5",
+  "Each IC wanders on its own (the flame), and now and then the whole\n"
+  "strip dips together (a gust) - that is what makes it visible.\n"
+  "-s 1 subtle ... -s 5 strong (default 4). Blocks while it runs.", stripFlicker };
 static const CommandDef D_STRIP_WALK  = { "walk", "light ICs one by one (debug)", "-wa --walk",
   SHELL_NONE, SHELL_NONE, nullptr, nullptr, stripWalk };
 static const CommandDef D_STRIP_BENCH = { "bench", "time one disco frame: generate + send (us)", "-be --bench",

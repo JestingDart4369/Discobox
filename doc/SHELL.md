@@ -13,6 +13,7 @@ This page explains where commands live, how to write one, which kinds of argumen
 - `include/Commands/Commands.h` is the list of all commands (the registry). Every new command is added here.
 - `include/Commands/Cmd_Audio.h` has `audio buzzer ...` and `audio speaker ...`.
 - `include/Commands/Cmd_Lights.h` has `lights button|strip|ring ...` and `lights clear`.
+- `include/Commands/Cmd_Relay.h` has `relay on|off|toggle` (see [RELAY.md](RELAY.md)).
 - `include/Commands/Cmd_Settings.h` has `settings ...`.
 - `include/Commands/Cmd_System.h` has `sp dp tp hold mode status brightness`.
 - `include/Commands/_Template.h` holds copy-paste examples written as classes. It is not compiled.

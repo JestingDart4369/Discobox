@@ -146,6 +146,33 @@ protected:
 
 
 /* ================================================================
+   Relay enable (Party mode switches the relay only while this is on)
+   ================================================================ */
+/**
+ * @brief Setting that toggles whether the relay may be switched on.
+ *
+ * Off = the relay stays off (Party and the `relay on` command cannot switch it
+ * on). Switching to off turns a running relay off at once.
+ * Value is persisted immediately via Persist.save().
+ */
+class RelaySetting : public SettingItem {
+public:
+  const char* name() const override { return "relay"; }
+
+  void bump() override {
+    relay1.setEnabled(!relay1.isEnabled());
+    Persist.save();
+    logValue();
+  }
+
+protected:
+  void logValue() const override {
+    Logger::log("Settings: relay = %s", relay1.isEnabled() ? "on (Party switches it)" : "off (stays off)");
+  }
+};
+
+
+/* ================================================================
    Cue theme (pitch/speed pack — see UiSfx_Cues.h)
    ================================================================ */
 /**
@@ -297,11 +324,12 @@ LightBrightnessSetting settingStripBrightness(BrightnessManager::STRIP, "strip b
 CueMuteSetting    settingMute;
 CueVolumeSetting  settingCueVolume;
 CueThemeSetting   settingTheme;
+RelaySetting      settingRelay;
 #ifdef DFPLAYERCONTROLLER_H
 VolumeSetting     settingVolume;
-SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingVolume, &settingCueVolume, &settingMute, &settingTheme };
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingVolume, &settingCueVolume, &settingMute, &settingTheme, &settingRelay };
 #else
-SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingCueVolume, &settingMute, &settingTheme };
+SettingItem* SETTINGS_LIST[] = { &settingBrightness, &settingStripBrightness, &settingCueVolume, &settingMute, &settingTheme, &settingRelay };
 #endif
 // The MASTER brightness is deliberately NOT in this list — set it from the
 // CLI / code with Brightness.setMaster(v); Persist.save();

@@ -34,7 +34,7 @@
   — e.g. Party plays "start"/"stop" for SP and "skip-next" for DP.
 
   IMPORTANT: this file uses the global objects from main.cpp
-  (RingOFLeds, RGBButton, and the Buzzer song-list player), so it must
+  (RingOFLeds, RGBButton, relay1 and the Buzzer song-list player), so it must
   be #included in main.cpp AFTER those objects are defined.
   The song list itself lives in Buzzer/Buzzer_Player.h. The Settings
   mode also needs SettingsList, so Settings_Items.h must come before
@@ -81,7 +81,7 @@ public:
 
 /* ================================================================
    MODE 1 — PARTY
-   SP = start/stop the party (disco lights + music)
+   SP = start/stop the party (disco lights + music + relay)
    DP = next song
    TP = (free — add your action)
    ================================================================ */
@@ -102,6 +102,7 @@ public:
   void Exit() override {
     _running = false;
     stopMusic();
+    relay1.off();
     Strip.clear();
     Strip.show();
   }
@@ -125,6 +126,7 @@ public:
       Logger::log("Party: stop");
       _running = false;
       stopMusic();
+      relay1.off();
       RingOFLeds.clear();
       RingOFLeds.setToColorSingleHex(1, color());
       RingOFLeds.show();
@@ -134,6 +136,7 @@ public:
     } else {
       Logger::log("Party: start!");
       _running = true;
+      relay1.on();                       // e.g. the spinning disco light
       if (DFPlayer.isOK()) {
         Logger::log("Party: DFPlayer playlist, folder %d", PARTY_FOLDER);
         DFPlayer.setAutoNext(true);      // step() advances to the next track by itself

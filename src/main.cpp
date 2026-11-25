@@ -23,6 +23,8 @@
 #include <SongPlayer.h>
 // DFPlayer Mini (MP3 over Serial1, D0=RX D1=TX)
 #include <DFPlayerController.h>
+// Relay (e.g. the spinning disco light, see doc/RELAY.md)
+#include <Relay.h>
 // Configuration
 
   // Button config
@@ -36,7 +38,8 @@
     ARGB<D4, 16> RingOFLeds;
     RGBLeds<D3, D5, D6> RGBButton;
     WS2805<60> Strip;  // 20 ICs/m × 3 m = 60 pixels (each IC drives 3 LEDs, 180 LEDs total)
-
+  // Setup Relay
+    Relay relay1(D7);   // D7 -> relay IN. Active-low module; use Relay relay1(D7, false) for active-high
   // One place for all brightness: own level per light + a master on top
   // (must come AFTER RingOFLeds/RGBButton/Strip, BEFORE Settings_Store.h)
     #include "Lights/Brightness_Manager.h"
@@ -44,6 +47,10 @@
   // One place for all loudness: speaker / buzzer music / buzzer cues + master
   // (must come AFTER Buzzer + DFPlayer, BEFORE Settings_Store.h)
     #include "Audio/Volume_Manager.h"
+
+  // Track names from the SD card's index.txt (generated at build time, see
+  // scripts/gen_track_index.py) — "what is playing" + skipping missing tracks
+    #include "Audio/Track_Index.h"
 
   // Power-resistant settings (cue theme/gap/mute, brightness levels + master,
   // volume) — must come AFTER Buzzer + Brightness above, it reads/writes those.
@@ -120,6 +127,8 @@ void setup() {
       Strip.setup();   // takes SPI control + sends all-off immediately
       Strip.clear();
       Strip.show();
+    //relay: off at boot
+      relay1.begin();
     //button:
       Button.setup();
       RGBButton.setup();
@@ -135,6 +144,8 @@ void setup() {
     // DFPlayer Mini — Serial1 (D0=RX ← DFPlayer TX, D1=TX → DFPlayer RX via 1kΩ)
       Serial1.begin(9600);
       DFPlayer.begin(20);   // volume 0-30; begin() blocks ~2s for DFPlayer boot
+      DFPlayer.setTrackIndex(TrackIndex::step);   // next/back/auto-next skip tracks missing on the card
+      DFPlayer.setTrackMap(TrackIndex::cardPosition);   // TEMP card-order fix, see Track_Index.h
 
     //settings saved from last time (cue theme/gap/mute, brightness) —
     //loaded before the boot cues below, so they already sound right.
@@ -169,6 +180,7 @@ uint8_t milis_fps = 1000 / fps;
 void loop() {
   Buzzer.step();     // every iteration — keeps song tight (+ auto-next)
   DFPlayer.step();   // every iteration — detects track-end, auto-next
+  TrackIndex::watch(); // logs "Now playing <title>" when the track changes
 
   unsigned long now = millis();
   if (now - _last_anim_frame >= milis_fps) { // 40 fps max for animations, button handling, etc.
