@@ -27,15 +27,16 @@ PAGES = {
     "doc/SD_CARD.md": ("sd-card.html", "SD card", "docs"),
     "doc/SHELL.md": ("shell.html", "Serial shell", "docs"),
     "cad/README.md": ("cad.html", "CAD files", "docs"),
+    "doc/CABLES.md": ("cables.html", "Cables and plugs", "docs"),
 }
 # repo path prefix -> site path
 ASSETS = {"doc/img/": "img/", "doc/journal/": "img/journal/"}
 SPECIAL = {"doc/wiring/README.md": "wiring/index.html", "doc/viewer/discobox_viewer.html": "3d/index.html",
            "doc/wiring/index.html": "wiring/index.html", "BOM.csv": "bom.html", "BOM_enclosure.csv": "bom.html"}
 
-CSS = """
+CSS = r"""
 /* Novaroma colours and shapes (same variables as novaroma-homelab.uk) */
-:root { --bg:#f6f7fb; --main:#5E282C; --text:#190607; --accent:#EEE3C9; --muted:#7e6e56; --line:2px; --corner-radius:26px; --pading:1rem; --head:76px; }
+:root { color-scheme: only light; --bg:#f6f7fb; --main:#5E282C; --text:#190607; --accent:#EEE3C9; --muted:#7e6e56; --line:2px; --corner-radius:26px; --pading:1rem; --head:76px; }
 * { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-padding-top: calc(var(--head) + 16px); }
 body { background:var(--bg); color:var(--main); font-family:'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; min-height:100vh; display:flex; flex-direction:column; line-height:1.6; }
@@ -65,7 +66,7 @@ main.stack { flex-direction:column; align-items:stretch; }
 main.full { max-width:none; padding:0; }
 .card { border:var(--line) solid var(--accent); border-radius:var(--corner-radius); padding:var(--pading); background:#fff8; }
 .content { flex:1; min-width:0; padding:1.4rem 1.8rem; }
-.toc { width:250px; flex:none; position:sticky; top:calc(var(--head) + 16px); max-height:calc(100vh - var(--head) - 40px); overflow:auto; }
+.toc { background:var(--bg); width:250px; flex:none; position:sticky; align-self:flex-start; top:calc(var(--head) + 16px); max-height:calc(100vh - var(--head) - 40px); overflow:auto; }
 .toc h2 { font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text); font-weight:700; margin:0 0 .5rem; border:0; padding:0; }
 .toc a { display:block; font-size:.84rem; padding:4px 10px; border-radius:999px; border:var(--line) solid transparent; margin-bottom:2px; }
 .toc a:hover { border-color:var(--accent); }
@@ -112,25 +113,48 @@ tr:last-child td { border-bottom:0; }
 footer { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; font-size:.8rem; border-top:var(--line) solid var(--main); }
 .footer-nav { display:flex; gap:.8rem; flex-wrap:wrap; } .footer-nav a { border:var(--line) solid var(--accent); border-radius:999px; padding:4px 14px; transition:.2s ease; } .footer-nav a:hover { border-color:var(--main); }
 
+/* 80s theme: neon accents on the Novaroma base (text colours stay dark on light for contrast) */
+header { border-bottom:0; box-shadow:0 4px 0 #ff2fa3, 0 8px 0 #2ff3ff, 0 12px 0 #ffe12f; margin-bottom:12px; }
+body { background:linear-gradient(#f6f7fb 0 60%, #efe3ff 100%) fixed; }
+body::after { content:""; position:fixed; left:0; right:0; bottom:0; height:22vh; z-index:-1; pointer-events:none; opacity:.35;
+  background:linear-gradient(90deg,#2ff3ff 1px,transparent 1px) 0 0/48px 48px, linear-gradient(#ff2fa3 1px,transparent 1px) 0 0/48px 48px; transform:perspective(300px) rotateX(55deg); transform-origin:50% 100%; }
+h1, h2 { font-style:italic; letter-spacing:.04em; text-shadow:2px 2px 0 #2ff3ff88; }
+.website-title .site-title { font-style:italic; text-transform:uppercase; letter-spacing:.12em; }
+.nav-links a.active { background:#ff2fa3; border-color:#ff2fa3; color:#fff; } .nav-links > li > a:hover { border-color:#2ff3ff; }
+footer { background:#12002b; color:#f6e9ff; border-top:4px solid #ff2fa3; } footer a, footer .footer-copy { color:#2ff3ff; }
 /* Hidden credits: press the copyright line 5 times. Slow colour cycling only (no flashing). */
 .footer-copy { background:none; border:0; font:inherit; color:inherit; cursor:default; user-select:none; padding:0; -webkit-tap-highlight-color:transparent; }
 .credits[hidden] { display:none; }
-.credits { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:#12002b; overflow:auto; padding:1.5rem; }
+.credits { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; background:linear-gradient(#07001a 0%, #1d0646 45%, #5a0f6e 72%, #c2186f 100%); overflow:auto; padding:5.5rem 1.5rem 1.5rem; }
 .disco-bg { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
-.beams { position:absolute; inset:-60%; mix-blend-mode:screen; animation:spin 40s linear infinite, hue 24s linear infinite;
-  background:conic-gradient(from 0deg at 50% 38%, #ff2fa366, transparent 7%, #2ff3ff66 13%, transparent 20%, #ffe12f55 26%, transparent 34%, #7a2fff66 40%, transparent 48%, #ff2fa366 54%, transparent 62%, #2fff8a55 68%, transparent 76%, #ff7a2f66 82%, transparent 90%); }
-.floor { position:absolute; left:-20%; right:-20%; bottom:-10%; height:46%; transform:perspective(420px) rotateX(62deg); transform-origin:50% 100%; animation:hue 18s linear infinite;
-  background:repeating-conic-gradient(#ff2fa3 0 25%, #2ff3ff 0 50%, #7a2fff 0 75%, #ffe12f 0 100%) 0 0/90px 90px; opacity:.55; }
-.ball { position:absolute; left:50%; top:5%; width:130px; height:130px; margin-left:-65px; border-radius:50%; animation:hue 24s linear infinite;
+.stars { position:absolute; inset:0 0 45% 0; opacity:.8; background-image:radial-gradient(1.5px 1.5px at 12% 20%,#fff,transparent),radial-gradient(1px 1px at 28% 60%,#cfe,transparent),radial-gradient(1.5px 1.5px at 44% 12%,#fff,transparent),radial-gradient(1px 1px at 61% 48%,#fff,transparent),radial-gradient(1.5px 1.5px at 77% 22%,#fcf,transparent),radial-gradient(1px 1px at 90% 58%,#fff,transparent),radial-gradient(1px 1px at 6% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 84% 8%,#fff,transparent); animation:twinkle 9s ease-in-out infinite alternate; }
+.sun { position:absolute; left:50%; bottom:22%; width:min(46vw,380px); aspect-ratio:1; margin-left:calc(min(46vw,380px) / -2); border-radius:50%; background:linear-gradient(#ffe12f 10%, #ff7a2f 50%, #ff2fa3 90%);
+  -webkit-mask:repeating-linear-gradient(#000 0 14px, transparent 14px 18px); mask:repeating-linear-gradient(#000 0 14px, transparent 14px 18px); -webkit-mask-size:100% 100%; opacity:.9; }
+.sun::after { content:""; position:absolute; inset:0; border-radius:50%; }
+.floor { position:absolute; left:-30%; right:-30%; bottom:0; height:40%; transform:perspective(380px) rotateX(64deg); transform-origin:50% 100%; background:
+  linear-gradient(90deg,#2ff3ffcc 2px,transparent 2px) 0 0/70px 70px, linear-gradient(#ff2fa3cc 2px,transparent 2px) 0 0/70px 70px, #14003a; animation:grid 3s linear infinite; box-shadow:0 -10px 40px #ff2fa3aa; }
+.horizon { position:absolute; left:0; right:0; bottom:40%; height:3px; background:#2ff3ff; box-shadow:0 0 18px 4px #2ff3ff, 0 0 60px 10px #ff2fa3; }
+.lasers { position:absolute; left:50%; top:8.7rem; width:0; height:0; }
+.laser { position:absolute; left:0; top:0; width:2px; height:160vh; transform-origin:0 0; border-radius:2px; mix-blend-mode:screen; animation:sweep 7s ease-in-out infinite alternate; }
+.laser:nth-child(1) { background:linear-gradient(#ff2fa3,#ff2fa300 90%); box-shadow:0 0 8px 2px #ff2fa3; --a:-62deg; --b:-14deg; }
+.laser:nth-child(2) { background:linear-gradient(#2ff3ff,#2ff3ff00 90%); box-shadow:0 0 8px 2px #2ff3ff; --a:-30deg; --b:28deg; animation-duration:9s; }
+.laser:nth-child(3) { background:linear-gradient(#7aff2f,#7aff2f00 90%); box-shadow:0 0 8px 2px #7aff2f; --a:14deg; --b:62deg; animation-duration:8s; }
+.laser:nth-child(4) { background:linear-gradient(#ffe12f,#ffe12f00 90%); box-shadow:0 0 8px 2px #ffe12f; --a:60deg; --b:-20deg; animation-duration:11s; }
+.laser:nth-child(5) { background:linear-gradient(#b06bff,#b06bff00 90%); box-shadow:0 0 8px 2px #b06bff; --a:-8deg; --b:40deg; animation-duration:10s; }
+.smoke { position:absolute; inset:0; filter:blur(38px); opacity:.55; }
+.smoke i { position:absolute; bottom:-12%; width:55vw; height:34vh; border-radius:50%; background:radial-gradient(closest-side,#e9d8ff99,#b38cff44 55%,transparent); animation:drift 26s ease-in-out infinite alternate; }
+.smoke i:nth-child(1){left:-15%;} .smoke i:nth-child(2){left:25%;bottom:-18%;animation-duration:34s;animation-delay:-9s;} .smoke i:nth-child(3){left:60%;animation-duration:30s;animation-delay:-16s;} .smoke i:nth-child(4){left:5%;bottom:20%;width:40vw;opacity:.7;animation-duration:40s;animation-delay:-5s;} .smoke i:nth-child(5){left:55%;bottom:26%;width:42vw;animation-duration:37s;animation-delay:-21s;}
+.scan { position:absolute; inset:0; background:repeating-linear-gradient(#0000 0 3px,#00000022 3px 4px); }
+.ball { position:relative; z-index:2; flex:none; width:130px; height:130px; margin:0 auto 1rem; border-radius:50%; animation:hue 24s linear infinite;
   background:repeating-linear-gradient(0deg,#0007 0 7px,transparent 7px 14px), repeating-linear-gradient(90deg,#0007 0 7px,transparent 7px 14px), radial-gradient(circle at 35% 30%, #fff, #cfd6ff 22%, #7d7fa6 58%, #231b3d); box-shadow:0 0 60px 12px #ffffff55; }
-.ball::before { content:""; position:absolute; left:50%; bottom:100%; width:2px; height:60vh; background:#ffffff88; }
-.credits-card { position:relative; z-index:2; max-width:600px; width:100%; margin:auto; background:#ffffffe0; backdrop-filter:blur(6px); color:var(--main); border:var(--line) solid var(--accent); border-radius:var(--corner-radius); padding:1.4rem 1.8rem; }
-.credits-card h2 { color:var(--text); font-size:1.5rem; margin-bottom:.2rem; } .credits-card h3 { color:var(--text); font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; margin:1rem 0 .3rem; }
+.ball::before { content:""; position:absolute; left:50%; bottom:100%; width:2px; height:5.5rem; background:#ffffff88; }
+.credits-card { position:relative; z-index:2; max-width:600px; width:100%; margin:0 auto; background:#fffffff0; backdrop-filter:blur(6px); color:var(--main); border:var(--line) solid #ff2fa3; box-shadow:0 0 0 2px #2ff3ff, 0 0 32px 4px #ff2fa3aa; border-radius:var(--corner-radius); padding:1.4rem 1.8rem; }
+.credits-card h2 { color:#c2186f; font-size:1.9rem; font-style:italic; font-weight:900; letter-spacing:.14em; text-transform:uppercase; text-shadow:2px 2px 0 #2ff3ff; margin-bottom:.2rem; } .credits-card h3 { color:var(--text); font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; margin:1rem 0 .3rem; }
 .credits-card p, .credits-card li { font-size:.9rem; margin-bottom:.3rem; } .credits-card ul { padding-left:1.2rem; }
 .credits-card button { margin-top:1rem; padding:.4rem 1.4rem; border:var(--line) solid var(--main); border-radius:999px; background:var(--accent); color:var(--main); cursor:pointer; font-size:.9rem; }
 .credits-card button:hover { background:var(--main); color:var(--bg); }
-@keyframes spin { to { transform:rotate(360deg); } } @keyframes hue { to { filter:hue-rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .beams, .floor, .ball { animation:none; } * { transition:none !important; } a:active, button:active { transform:none; } }
+@keyframes spin { to { transform:rotate(360deg); } } @keyframes sweep { from { transform:rotate(var(--a)); } to { transform:rotate(var(--b)); } } @keyframes grid { to { background-position:0 70px; } } @keyframes drift { from { transform:translateX(-8vw) scale(1); } to { transform:translateX(12vw) scale(1.25); } } @keyframes twinkle { from { opacity:.5; } to { opacity:.9; } } @keyframes hue { to { filter:hue-rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .laser, .smoke i, .floor, .ball, .stars { animation:none; } * { transition:none !important; } a:active, button:active { transform:none; } }
 a:focus-visible, button:focus-visible { outline:3px solid var(--text); outline-offset:2px; border-radius:6px; }
 a:active, button:active { transform:scale(.98); }
 .btn-primary:active { background:#451d20; color:var(--bg); }
@@ -147,7 +171,7 @@ a:active, button:active { transform:scale(.98); }
 
 # nav: (label, href or None, children)
 NAV = [("Home", "index.html", None),
-       ("Build", None, [("3D viewer", "3d/index.html"), ("Wiring diagrams", "wiring/index.html"), ("Enclosure", "enclosure.html"),
+       ("Build", None, [("3D viewer", "3d/index.html"), ("Wiring diagrams", "wiring/index.html"), ("Interactive wiring", "wiring/interactive.html"), ("Cables and plugs", "cables.html"), ("Enclosure", "enclosure.html"),
                         ("CAD files", "cad.html"), ("Bill of materials", "bom.html")]),
        ("Docs", None, [("Project readme", "project.html"), ("Relay", "relay.html"), ("SD card", "sd-card.html"), ("Serial shell", "shell.html")]),
        ("Journal", "journal.html", None)]
@@ -172,18 +196,21 @@ def head_html(cur, pre):
 
 
 CREDITS = """<div id="credits" class="credits" hidden role="dialog" aria-modal="true" aria-label="Credits">
-<div class="disco-bg" aria-hidden="true"><div class="beams"></div><div class="floor"></div><div class="ball"></div></div>
-<div class="credits-card"><h2>Credits</h2><p>You found the disco. Thanks for looking behind the footer.</p>
+<div class="disco-bg" aria-hidden="true"><div class="stars"></div><div class="sun"></div><div class="horizon"></div><div class="floor"></div><div class="lasers"><div class="laser"></div><div class="laser"></div><div class="laser"></div><div class="laser"></div><div class="laser"></div></div><div class="smoke"><i></i><i></i><i></i><i></i><i></i></div><div class="scan"></div></div>
+<div class="ball" aria-hidden="true"></div>
+<div class="credits-card"><h2>Credits</h2><p>You found the disco. Welcome to 1985. Thanks for looking behind the footer.</p>
 <h3>Made by</h3><ul><li>JestingDart4369: idea, electronics, firmware, enclosure design, photos and journal</li></ul>
-<h3>Music</h3><ul><li>Want a disco track? <a href="https://www.youtube.com/watch?v=5QWpNSWxXFE" target="_blank" rel="noopener">JAWS, &ldquo;Dive Back In Time&rdquo; on YouTube</a> (opens in a new tab). The song is not hosted or embedded here; all rights belong to its owners.</li></ul>
+<h3>Music</h3><ul><li>Want a disco track? <a href="https://www.youtube.com/watch?v=5QWpNSWxXFE" target="_blank" rel="noopener">JAWS, &ldquo;Dive Back In Time&rdquo; on YouTube</a> (opens in a new tab). The song is streamed from YouTube through its player, not hosted on this site; all rights belong to its owners. It starts when this window opens and stops when you close it. If your browser blocks it, press play.</li></ul><div id="cmusic" aria-label="Music player"></div>
 <h3>Sound</h3><ul><li><a href="https://kenney.nl">Kenney UI Audio</a> by Kenney Vleugels, CC0</li><li>UI SFX sound packs, CC0</li></ul>
 <h3>Software</h3><ul><li>PlatformIO, Unity test framework, FastLED, the Arduino core for the Uno R4 WiFi</li><li>Python with trimesh, manifold3d, numpy, numba for the CAD files, renders and 3D viewer</li><li>Site layout and colours follow novaroma-homelab.uk</li></ul>
 <h3>Hardware</h3><ul><li>Arduino Uno R4 WiFi, WS2812 ring, WS2805 strip, DFPlayer Mini, 1-channel relay, PAM8403 amplifier</li></ul>
 <h3>AI</h3><ul><li>Developed with the help of Claude (Anthropic) for documentation, code review, tests, CAD scripts and this site. The journal is written by me.</li></ul>
 <button id="cclose" type="button">Close</button></div></div>
 <script>(function(){var el=document.getElementById('credits'),fc=document.getElementById('fc'),t=[];
-function open(){el.hidden=false;document.body.style.overflow='hidden';document.getElementById('cclose').focus();}
-function close(){el.hidden=true;document.body.style.overflow='';}
+var mu=document.getElementById('cmusic');
+function open(){el.hidden=false;document.body.style.overflow='hidden';document.getElementById('cclose').focus();
+mu.innerHTML='<iframe width="280" height="158" style="border:0;border-radius:12px" src="https://www.youtube-nocookie.com/embed/5QWpNSWxXFE?autoplay=1&rel=0&playsinline=1" title="JAWS - Dive Back In Time (YouTube)" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>';}
+function close(){el.hidden=true;document.body.style.overflow='';mu.innerHTML='';}
 fc.addEventListener('click',function(){var n=Date.now();t.push(n);t=t.filter(function(x){return n-x<4000;});if(t.length>=5){t=[];open();}});
 document.getElementById('cclose').addEventListener('click',close);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
@@ -196,10 +223,10 @@ def foot_html(pre):
 <div class="footer-nav">{links}<a href="https://novaroma-homelab.uk">novaroma-homelab.uk</a></div></footer>{CREDITS}"""
 
 
-def page(title, body, cur, depth=0, layout="stack", extra_head=""):
+def page(title, body, cur, depth=0, layout="row", extra_head=""):
     pre = "../" * depth
     return f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#5E282C"><title>{html.escape(title)} · Discobox</title><link rel="stylesheet" href="{pre}style.css">{extra_head}</head><body>
+<meta name="theme-color" content="#5E282C"><meta name="color-scheme" content="only light"><meta name="darkreader-lock"><title>{html.escape(title)} · Discobox</title><link rel="stylesheet" href="{pre}style.css">{extra_head}</head><body>
 {head_html(cur, pre)}
 <main class="{layout}">{body}</main>
 {foot_html(pre)}</body></html>"""
@@ -272,6 +299,8 @@ def landing():
          [("3d/index.html", "3D viewer", "Rotate the record player, switch versions, hide parts."),
           ("enclosure.html", "Enclosure", "Record-player housing, mains isolation, printing."),
           ("wiring/index.html", "Wiring diagrams", "v1.2, v2 and v3 with a version switch."),
+          ("wiring/interactive.html", "Interactive wiring", "Click a wire, see it light up in the 3D model."),
+          ("cables.html", "Cables and plugs", "Real lengths and amounts for every cable."),
           ("bom.html", "Bill of materials", "Parts with prices and links."),
           ("cad.html", "CAD files", "Generators, STL and 3MF files.")]),
         ("Understand it", "How the firmware and the parts work.",
@@ -365,9 +394,14 @@ def main():
     for f in os.listdir(wdir):
         if f == "README.md":
             continue
+        if f == "interactive.html":
+            t = open(os.path.join(wdir, f), encoding="utf-8").read().replace("../viewer/discobox_viewer.html", "../3d/viewer.html")
+            open(os.path.join(OUT, "wiring", "interactive_inner.html"), "w", encoding="utf-8").write(t)
+            continue
         shutil.copy(os.path.join(wdir, f), os.path.join(OUT, "wiring", "diagrams.html" if f == "index.html" else f))
     open(os.path.join(OUT, "3d", "index.html"), "w", encoding="utf-8").write(viewer_page("3D viewer", "3d/index.html", "viewer.html"))
     open(os.path.join(OUT, "wiring", "index.html"), "w", encoding="utf-8").write(viewer_page("Wiring diagrams", "wiring/index.html", "diagrams.html"))
+    open(os.path.join(OUT, "wiring", "interactive.html"), "w", encoding="utf-8").write(viewer_page("Interactive wiring", "wiring/interactive.html", "interactive_inner.html"))
     # pages
     open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(page("Home", landing(), "index.html", layout="stack"))
     for src, (name, title, _) in PAGES.items():

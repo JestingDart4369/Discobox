@@ -35,14 +35,14 @@ PAD_H = 5.0     # PCB height above the plate (matches make_blockout.py)
 MODULES = {
     "dfplayer":      (-120, -100, 20.8, 20.4, 1.0, PAD_H),
     "pam8403_amp":   (-90, -100, 21.0, 18.0, 1.6, PAD_H),       # (guess)
-    "buck_converter": (-120, 60, 50.0, 25.0, 1.6, PAD_H),       # (guess)
+    "buck_converter": (-135, 60, 60.0, 30.0, 1.6, PAD_H),       # 6 x 3 cm, 2 cm high (measured by you)
     "level_shifter_74AHCT125": (-100, 100, 30.0, 20.0, 1.6, PAD_H),   # perfboard (guess)
-    "barrel_jack_terminals": (-160, 95, 25.0, 15.0, 1.6, PAD_H),      # (guess)
     "gnd_block":     (-160, 115, 25.0, 12.0, 1.6, PAD_H),             # (guess)
-    "relay_module":  (mb.MAINS_X0 + 5, mb.MAINS_Y0 + 5, 50.0, 26.0, 1.6, PAD_H),
+    "relay_module":  (mb.MAINS_X0 + 66, 95.0, 50.0, 26.0, 1.6, PAD_H),
 }
+BUZ = (-150.0, -35.0)      # lower-left corner of the piezo buzzer (30 x 30 mm body); the lug with the screw hole points to +X
 # cable clips: (x, y, rotation deg about Z). Channel runs along Y at 0 deg, along X at 90.
-CLIPS = [(-135, 135, 0), (-105, 135, 0), (-95, 30, 0), (-100, -60, 0), (-100, -128, 0),
+CLIPS = [(22, 95, 90), (22, 50, 90), (12, 52, 0), (-135, 135, 0), (-105, 135, 0), (-95, 30, 0), (-100, -60, 0), (-100, -128, 0),
          (-3, -118, 90), (-10, 30, 0)]
 
 
@@ -87,12 +87,12 @@ def module_mount(x0, y0, sx, sy, t, pad_h):
 
 
 def brick_stops():
-    """Corner stops and two cable-tie slots for the 12 V brick (110 x 50 guess) in the mains compartment."""
-    x0, y0 = mb.MAINS_X0 + 5, mb.MAINS_Y0 + 35
+    """Corner stops and two cable-tie slots for the 12 V brick (190 x 60 x 40 mm incl. the plugged-in cable end) in the mains compartment."""
+    x0, y0 = mb.MAINS_X0 + 2, mb.MAINS_Y0 + 3
     parts = []
-    for cx, cy in [(x0 - 3, y0 - 3), (x0 + 110, y0 - 3), (x0 - 3, y0 + 50), (x0 + 110, y0 + 50)]:
+    for cx, cy in [(x0 - 3, y0 - 3), (x0 + mb.BRICK_W, y0 - 3), (x0 - 3, y0 + mb.BRICK_L), (x0 + mb.BRICK_W, y0 + mb.BRICK_L)]:
         parts.append(box(cx, cy, PLATE_T, 3, 3, 12))
-    return parts, [(x0 + 30, y0 - 8), (x0 + 80, y0 - 8)]
+    return parts, [(x0 + mb.BRICK_W / 2 - 1.5, y0 + 50), (x0 + mb.BRICK_W / 2 - 1.5, y0 + 130)]
 
 
 CLIP_D = 6.0        # wire bundle diameter the clip holds (mm); tune it
@@ -149,19 +149,69 @@ def shell():
         for i in range(6):
             s = box(sx * hw - 2, -10 + i * 14, 40, 4, 8, 30)
             cuts.append(s)
+    cuts += shell_character()
     return diff(h, cuts)
+
+
+def shell_character():
+    """Retro hi-fi details that only CUT into the outside (never more than 1.2 mm of the 3 mm wall, inside dimensions unchanged):
+    rounded vertical corners (R6), 2 mm chamfer round the top edge, three pinstripe grooves on the sides and the back, recessed panels
+    around the side vents, and a nameplate recess between the speakers on the front."""
+    from shapely.geometry import box as sbox
+    cut = []
+    R = 6.0
+    for sx in (-1, 1):                                                       # rounded vertical corners
+        for sy in (-1, 1):
+            cx, cy = sx * (hw - R), sy * (hd - R)
+            blockc = box(cx if sx > 0 else -hw - 1, cy if sy > 0 else -hd - 1, -1, R + 1, R + 1, H + 2)
+            cut.append(diff(blockc, [cyl(cx, cy, -2, 2 * R, H + 4)]))
+    # 2 mm chamfer round the top edge (rotated square bars along each edge)
+    c = 2.0 * np.sqrt(2)
+    for (cx, cy, L, ax) in ((0, -hd, W + 4, 'x'), (0, hd, W + 4, 'x'), (-hw, 0, D + 4, 'y'), (hw, 0, D + 4, 'y')):
+        bar = trimesh.creation.box(extents=(L, c, c) if ax == 'x' else (c, L, c))
+        rot = trimesh.transformations.rotation_matrix(np.pi / 4, (1, 0, 0) if ax == 'x' else (0, 1, 0))
+        bar.apply_transform(rot); bar.apply_translation((cx, cy, H))
+        cut.append(bar)
+    # pinstripes: three rounded-rectangle grooves, 1.6 mm wide and 1 mm deep, left out on the front panel (speakers and nameplate live there)
+    outer = sbox(-hw - 3, -hd - 3, hw + 3, hd + 3)
+    inner = sbox(-hw + R, -hd + R, hw - R, hd - R).buffer(R - 1.2, resolution=24)
+    ring2d = outer.difference(inner)
+    plinth = trimesh.creation.extrude_polygon(ring2d, height=8.0); plinth.apply_translation((0, 0, -1.0))      # bottom 7 mm stepped in by 1.2 mm: a base
+    cut.append(plinth)
+    for z0 in (73.0, 78.0, 83.0):
+        ring = trimesh.creation.extrude_polygon(ring2d, height=2.4); ring.apply_translation((0, 0, z0))
+        cut.append(diff(ring, [box(-hw - 4, -hd - 4, z0 - 1, W + 8, 14.0, 4)]))
+    # recessed panels around the side vents (0.8 mm) and a nameplate on the front
+    for sx in (-1, 1):
+        cut.append(box(hw - 1.2 if sx > 0 else -hw - 1, -16, 34, 2.2, 92, 42))
+    cut.append(box(-32, -hd - 1, 42, 64, 2.2, 16))
+    return cut
 
 
 def frame():
     iw, idp = W - 2 * WALL - 2 * FIT, D - 2 * WALL - 2 * FIT
     plate = box(-iw / 2, -idp / 2, 0, iw, idp, PLATE_T)
     add = [plate, mb.mains_box()]
-    # speaker saddles
+    # speaker holders: the frame rises into a baffle plate right behind the front wall of the shell. The speaker is screwed to the BACK of
+    # the baffle (screws from inside through the flange holes into blind pilot holes), so no screw holes show on the outside and the
+    # speaker stays on the frame when the shell is lifted off. A saddle carries the weight of the basket and magnet.
     for sx in (-mb.SPK_X, mb.SPK_X):
-        s = box(sx - 38, -hd + WALL + 2, PLATE_T, 76, 34, mb.SPK_Z - 40 + 3)
+        yb = -hd + WALL + mb.BAFFLE_GAP
+        baffle = box(sx - 55, yb, PLATE_T, 110, mb.BAFFLE_T, mb.SPK_Z + 46 - PLATE_T)
+        opening = cyl(0, 0, -50, mb.GRILLE_D + 4, 100); rx90(opening, -1).apply_translation((sx, yb, mb.SPK_Z))
+        pilots = []
+        for ox in (-mb.SPK_HOLE_OFF, mb.SPK_HOLE_OFF):
+            for oz in (-mb.SPK_HOLE_OFF, mb.SPK_HOLE_OFF):
+                pilots.append(trimesh.creation.cylinder(radius=1.3, segment=[(sx + ox, yb + mb.BAFFLE_T + 0.5, mb.SPK_Z + oz), (sx + ox, yb + 1.0, mb.SPK_Z + oz)], sections=24))   # 2.6 mm pilot, 1 mm skin at the front
+        add.append(diff(baffle, [opening] + pilots))
+        ys = yb + mb.BAFFLE_T + 3 + 2.6                      # saddle starts behind the rubber surround (surround is 5.4 mm deep)
+        s_ = box(sx - 41, ys, PLATE_T, 82, mb.SPK_DEPTH - 3 - 2.6, mb.SPK_Z - 40 + 3)
         cr = cyl(0, 0, -50, mb.SPK_D + 0.4, 100)
-        rx90(cr, -1).apply_translation((sx, -hd + WALL, mb.SPK_Z))
-        add.append(diff(s, [cr]))
+        rx90(cr, -1).apply_translation((sx, yb, mb.SPK_Z))
+        add.append(diff(s_, [cr]))
+    # piezo buzzer 3 x 3 x 1.5 cm: 4 mm platform under the body and a screw boss under its side lug (lug is not in the 3 x 3 size)
+    add.append(box(BUZ[0], BUZ[1], PLATE_T, 30, 30, 4))
+    add.append(diff(cyl(BUZ[0] + 36, BUZ[1] + 15, PLATE_T, 9, 4), [cyl(BUZ[0] + 36, BUZ[1] + 15, PLATE_T + 1, 2.5, 6)]))
     # Arduino standoffs at the 4 datasheet holes (board rotated -90 deg, USB edge to the back)
     for hx, hy in [(13.97, 2.54), (15.24, 50.80), (66.04, 7.62), (66.04, 35.56)]:
         x, y = hy - 50, -hx + 60 + 68.6
@@ -183,6 +233,18 @@ def frame():
         sc_.apply_transform(trimesh.transformations.rotation_matrix(np.radians(ang), (0, 0, 1)))
         sc_.apply_translation((mb.STEM_X, mb.STEM_Y, 75))
         cuts.append(sc_)
+    def hole_x(y, z, d, x0, x1):
+        return trimesh.creation.cylinder(radius=d / 2, segment=[(x0, y, z), (x1, y, z)], sections=48)
+    def hole_y(x, z, d, y0, y1):
+        return trimesh.creation.cylinder(radius=d / 2, segment=[(x, y0, z), (x, y1, z)], sections=48)
+    wx0, wx1 = mb.MAINS_X0 - WALL - 1, mb.MAINS_X0 + 1
+    cuts.append(hole_y(mb.MAINS_X0 + 32, 22, 10, mb.MAINS_Y0 - WALL - 1, mb.MAINS_Y0 + 1))   # 12 V lead leaves the brick's DC end through the front wall of the compartment
+    cuts.append(hole_x(50, 12, 8, wx0, wx1))                                 # 5 V relay coil wires through the wall
+    yb0, yb1 = mb.MAINS_Y0 + mb.MAINS_D - 1, mb.MAINS_Y0 + mb.MAINS_D + WALL + 1
+    for pname in ("mains inlet (Swiss plug cable)", "outlet B Type 13 (disco ball)"):   # holes in the box back wall, in line with the pocket ports
+        px_, pd_ = mb.PORTS[pname]
+        cuts.append(hole_y(px_, mb.POCKET_Z0 + mb.POCKET_H / 2, pd_, yb0, yb1))
+    cuts.append(box(-10, mb.STEM_Y + 25, PLATE_T + 2, 20, 20, 25))           # cable exit slot at the foot of the pipe collar
     for tx, ty in ties:                                                      # 3 x 6 mm slots for cable ties around the brick
         cuts.append(box(tx, ty, -1, 3, 6, PLATE_T + 2))
     for x, y in col_pos():
@@ -228,7 +290,7 @@ def main():
     for n, m in parts.items():
         sc.add_geometry(m, node_name=n, geom_name=n)
     for n, g in trimesh.load(os.path.join(mb.OUT, "blockout_assembly.3mf"), force="scene").geometry.items():
-        if n in ("arduino", "dfplayer", "relay_module", "speaker_left", "speaker_right", "pipe_to_button") or "guess" in n:
+        if n in ("arduino", "dfplayer", "relay_module", "speaker_left", "speaker_right", "pipe_to_button", "buck_converter", "psu_brick_12V") or "guess" in n:
             sc.add_geometry(g, node_name=n, geom_name=n)
     sc.export(os.path.join(mb.OUT, "shell_frame_assembly.3mf"))
     for n, m in parts.items():

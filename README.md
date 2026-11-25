@@ -39,6 +39,7 @@ All grounds (12 V supply, 5 V buck converter, Arduino, strip) must be connected 
 The SD card layout for the DFPlayer (folder `01` = misc, `02` = Party mode, ...) is described in [doc/SD_CARD.md](doc/SD_CARD.md).
 
 Electrical wiring diagrams (versions v1.2, v2 and v3, with a version switch) are in [doc/wiring](doc/wiring/README.md).
+Interactive wiring (click a wire, see it light up in the 3D model): [doc/wiring/interactive.html](doc/wiring/interactive.html). Cable and plug list with real lengths: [doc/CABLES.md](doc/CABLES.md).
 
 Everything is also published as one website with GitHub Pages (built on every push by [.github/workflows/pages.yml](.github/workflows/pages.yml) from [site/build_site.py](site/build_site.py)); expected address: https://jestingdart4369.github.io/Discobox/ . One-time setup: repository Settings, Pages, Source: GitHub Actions.
 

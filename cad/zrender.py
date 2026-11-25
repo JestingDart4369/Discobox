@@ -80,7 +80,9 @@ def render(parts, el=20, az=-30, width=1400, ssaa=3, background="blue", shadow=T
     img = np.where(cov[..., None] > 1e-3, img / np.maximum(cov[..., None], 1e-3), 0)
     # background
     yy = np.linspace(0, 1, h2)[:, None, None]
-    if background == "blue":
+    if background == "synth":
+        top, bot = np.array([0.10, 0.02, 0.24]), np.array([0.86, 0.16, 0.50])
+    elif background == "blue":
         top, bot = np.array([0.90, 0.95, 1.0]), np.array([0.72, 0.85, 0.96])
     else:
         top, bot = np.array([0.70, 0.60, 0.52]), np.array([0.34, 0.28, 0.24])

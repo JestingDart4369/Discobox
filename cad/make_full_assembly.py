@@ -17,7 +17,7 @@ sf, wi, rp = load("make_shell_frame"), load("make_interior"), load("make_recordp
 mb = sf.mb
 
 C = {  # RGB
-    "shell": (200, 25, 30), "frame": (70, 70, 75), "mains_lid": (230, 120, 20), "platter": (25, 25, 25),
+    "shell": (232, 30, 140), "frame": (30, 205, 225), "mains_lid": (255, 225, 47), "platter": (52, 22, 100),
     "pipe": (190, 190, 195), "speaker": (60, 60, 60), "arduino": (0, 130, 140), "dfplayer": (60, 60, 190),
     "pam": (40, 150, 70), "buck": (190, 40, 150), "relay": (30, 90, 200), "psu": (90, 90, 95),
     "inlet": (230, 200, 40), "shifter": (30, 160, 200), "jack": (140, 90, 40), "gnd": (30, 30, 30),
@@ -67,7 +67,7 @@ def main():
     with contextlib.redirect_stdout(io.StringIO()):
         mb.main()
     base = trimesh.load(os.path.join(mb.OUT, "blockout_assembly.3mf"), force="scene").geometry
-    skip = ("housing", "mains_compartment_walls", "relay_module", "platter", "pipe_to_button")      # shell/frame replace these; relay added below
+    skip = ("housing", "mains_compartment_walls", "relay_module", "platter", "pipe_to_button", "speaker_left", "speaker_right")      # shell/frame replace these; relay added below
     for n, g in base.items():
         if n in skip: continue
         parts["block_" + n.replace(" ", "_")] = colour(g, pick(n))
@@ -77,9 +77,20 @@ def main():
             continue
         key = "relay" if n == "relay_module" else "shifter" if "shifter" in n else "jack" if "jack" in n else "gnd"
         parts["block_" + n] = colour(sf.box(x0, y0, sf.PLATE_T + ph, sx, sy, 6 if key != "relay" else 17), C[key])
+    for side, sx_ in ("L", -mb.SPK_X), ("R", mb.SPK_X):                          # proper speaker models (flange, surround, cone, dust cap, basket, magnet)
+        for k_, m_ in mb.speaker_parts(sx_).items():
+            parts[f"block_speaker_{side}_{k_}"] = m_
+    bx_, by_ = sf.BUZ                              # piezo buzzer 3 x 3 x 1.5 cm with a side lug (screw hole), sits on the 4 mm platform
+    z0_ = sf.PLATE_T + 4
+    body_ = sf.box(bx_, by_, z0_, 30, 30, 15)
+    lug_ = sf.diff(sf.box(bx_ + 30, by_ + 10, z0_, 12, 10, 3), [sf.cyl(bx_ + 36, by_ + 15, z0_ - 1, 3.2, 5)])
+    parts["block_buzzer_piezo"] = colour(trimesh.util.concatenate([body_, lug_]), (20, 20, 24))
     for n, m in rp.all_parts().items():          # record-player look: tilted platter + record, knobs, tonearm, feet
         parts["rp_" + n] = m
     for n, m in wi.build().items():
+        parts[n] = m
+    import make_plugs as pl
+    for n, m in pl.parts().items():              # plugs in the back ports + external cables at real length (not printed)
         parts[n] = m
     sc = trimesh.Scene()
     for n, m in parts.items():

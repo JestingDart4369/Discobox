@@ -81,16 +81,20 @@ def record_parts():
     p = {}
     holder = _starter("led_holder", -15.0)                              # 315 mm disc with the ring pocket
     holder = trimesh.boolean.intersection([holder, cyl(0, 0, -40, REC_D, 60, 128)], engine="manifold")   # trimmed to 300 mm
-    p["record_body"] = C(holder, (20, 20, 22))
+    p["record_body"] = C(holder, (20, 10, 34))
     top = _starter("test_top", -15.0)                                   # 120 mm diffuser plate, hole 16 mm for the button
-    p["diffuser_plate"] = C(top, (225, 225, 232))
-    p["led_ring_block"] = C(_starter("led_ring", -15.0), (30, 160, 200))
+    p["diffuser_plate"] = C(top, (238, 224, 255))
+    p["led_ring_block"] = C(_starter("led_ring", -15.0), (47, 243, 255))
     zt = -5.0                                                           # holder front face
     g = [annulus(r + 1.0, r, 0.3, zt) for r in np.arange(66.0, REC_D / 2 - 4, 6.0)]
-    p["record_grooves"] = C(trimesh.util.concatenate(g), (60, 60, 65))
-    p["record_label"] = C(annulus(LABEL_D / 2, 8.3, 0.8, 0), (235, 190, 60))          # label stuck on the diffuser plate
-    p["button_collar"] = C(annulus(15, 8.3, 3.0, 0.8), (205, 205, 210))
-    p["button_cap"] = C(disc(15.0, 5.0, 1.0), (225, 20, 25))
+    p["record_grooves"] = C(trimesh.util.concatenate(g), (80, 44, 125))
+    p["record_label"] = C(annulus(LABEL_D / 2, 8.3, 0.8, 0), (255, 140, 40))          # label stuck on the diffuser plate
+    # 16 mm push button (PM161H style): metal bezel ring, plastic cap with a domed top that moves a little when pressed
+    p["button_collar"] = C(annulus(9.5, 7.9, 2.8, 0.8), (205, 205, 210))
+    stem = disc(15.4, 3.2, 1.0)
+    dome = trimesh.creation.uv_sphere(radius=14.0, count=[48, 96]); dome.apply_translation((0, 0, 4.2 + 2.2 - 14.0))
+    dome = dome.slice_plane((0, 0, 4.2), (0, 0, 1), cap=True)
+    p["button_cap"] = C(trimesh.util.concatenate([stem, dome]), (255, 47, 163))
     return p
 
 
@@ -107,7 +111,9 @@ def _smooth(t):
 
 def _tube(centres, radii, sections=64):
     """Closed tube mesh along a polyline with varying radius (parallel-transport frames)."""
-    centres = np.asarray(centres, float)
+    centres = np.asarray(centres, float); radii = np.asarray(radii, float)
+    keep = [0] + [i for i in range(1, len(centres)) if np.linalg.norm(centres[i] - centres[i - 1]) > 0.2]   # drop (almost) duplicate rings
+    centres, radii = centres[keep], radii[keep]
     tang = np.gradient(centres, axis=0)
     tang /= np.linalg.norm(tang, axis=1)[:, None]
     ref = np.array([1.0, 0, 0]) if abs(tang[0][0]) < 0.9 else np.array([0, 1.0, 0])
@@ -182,23 +188,36 @@ def hull_parts():
         for sy in (-1, 1):
             p[f"foot_{'L' if sx < 0 else 'R'}{'F' if sy < 0 else 'B'}"] = C(cyl(sx * 140, sy * 140, -10, 32, 10), (25, 25, 25))
     # flat platter + slip mat on the deck, centred on the pipe, with a hole for the pipe
-    p["platter_flat"] = C(diff(disc(PLAT_D, PLAT_T, H), [disc(PIPE_OD + 1, PLAT_T + 2, H - 1)]), (160, 160, 165))
-    p["platter_mat"] = C(diff(disc(MAT_D, MAT_T, H + PLAT_T), [disc(PIPE_OD + 1, MAT_T + 2, H + PLAT_T - 1)]), (45, 45, 50))
+    p["platter_flat"] = C(diff(disc(PLAT_D, PLAT_T, H), [disc(PIPE_OD + 1, PLAT_T + 2, H - 1)]), (52, 22, 100))
+    p["platter_mat"] = C(diff(disc(MAT_D, MAT_T, H + PLAT_T), [disc(PIPE_OD + 1, MAT_T + 2, H + PLAT_T - 1)]), (22, 8, 48))
     # control panel (front, right) with three knobs and a slider
-    p["control_panel"] = C(box(10, -168, H, 140, 34, 1.5), (30, 30, 32))
+    p["control_panel"] = C(box(6, -166, H, 148, 36, 4), (22, 8, 48))          # raised plate, 4 mm, fully on the deck
     for i, x in enumerate((35, 80, 125)):
-        base = cyl(x, -151, H + 1.5, 30, 12); ring = cyl(x, -151, H + 13.5, 34, 3)
-        p[f"knob{i + 1}"] = C(trimesh.util.concatenate([base, ring]), (215, 215, 220))
-        p[f"knob{i + 1}_pointer"] = C(box(x - 1, -151, H + 16.5, 2, 13, 1), (210, 20, 25))
-    p["slider_track"] = C(box(-120, -152, H + 1.5, 100, 4, 1), (10, 10, 10))
-    p["slider_handle"] = C(box(-75, -155, H + 2.5, 8, 10, 6), (210, 20, 25))
+        skirt = cyl(x, -148, H + 4, 38, 2)                                     # visible base ring under each knob
+        base = cyl(x, -148, H + 6, 30, 12); ring = cyl(x, -148, H + 18, 34, 3)  # knob stands ON the skirt, not in the plate
+        p[f"knob{i + 1}"] = C(trimesh.util.concatenate([skirt, base, ring]), (47, 243, 255))
+        p[f"knob{i + 1}_pointer"] = C(box(x - 1, -148, H + 21, 2, 13, 1), (255, 225, 47))
+    p["slider_track"] = C(box(-120, -152, H, 100, 4, 1.5), (10, 10, 10))      # sits on the deck (was floating 1.5 mm)
+    p["slider_handle"] = C(box(-75, -155, H + 1.5, 8, 10, 6), (255, 47, 163))
     # tonearm: pivot at the right rear (as on a normal turntable), arm reaches over the platter
     bx, by = 135.0, 150.0
-    arm_end = (95.0, -40.0)
+    arm_end = (128.0, 45.0)
     p["tonearm_base"] = C(cyl(bx, by, H, 32, 16), (200, 200, 205))
-    p["tonearm_tube"] = C(trimesh.creation.cylinder(radius=3, segment=[(bx, by, H + 20), (arm_end[0], arm_end[1], H + PLAT_T + MAT_T + 12)], sections=24), (200, 200, 205))
-    p["tonearm_counterweight"] = C(trimesh.creation.cylinder(radius=9, segment=[(bx, by + 4, H + 20), (bx + 3, by + 30, H + 20)], sections=32), (60, 60, 65))
-    p["tonearm_headshell"] = C(box(arm_end[0] - 8, arm_end[1] - 22, H + PLAT_T + MAT_T + 8, 16, 22, 4), (30, 30, 30))
+    p["tonearm_tube"] = C(trimesh.creation.cylinder(radius=4, segment=[(bx, by, H + 20), (arm_end[0], arm_end[1], H + PLAT_T + MAT_T + 12)], sections=24), (200, 200, 205))
+    p["tonearm_counterweight"] = C(trimesh.creation.cylinder(radius=9, segment=[(bx, by + 4, H + 20), (bx + 3, by + 30, H + 20)], sections=32), (122, 47, 255))
+    # SIMPLE printable headshell: one block and one cartridge block, both straight along the arm (no angle, no tiny parts),
+    # plus a post under the arm end so the 108 mm arm does not hang free while printing.
+    ex, ey, ez = arm_end[0], arm_end[1], H + PLAT_T + MAT_T + 12
+    th = np.arctan2(arm_end[1] - by, arm_end[0] - bx)
+    def at_arm(m, rgb):
+        m = m.copy()
+        m.apply_transform(trimesh.transformations.rotation_matrix(th, (0, 0, 1)))
+        m.apply_translation((ex, ey, ez))
+        return C(m, rgb)
+    p["tonearm_headshell"] = at_arm(box(-4, -8, -6, 36, 16, 6), (32, 32, 36))               # 36 x 16 x 6 mm
+    p["tonearm_cartridge"] = at_arm(box(6, -6, -12, 22, 12, 6), (255, 47, 163))             # 22 x 12 x 6 mm, hangs under the headshell
+    p["tonearm_post"] = C(cyl(ex, ey, H, 8, ez - 4 - H), (200, 200, 205))                  # 8 mm support post under the arm end
+    p["tonearm_tube_collar"] = C(cyl(bx, by, H + 14, 12, 12), (170, 170, 175))          # gimbal ring at the pivot
     p["tonearm_rest"] = C(box(bx - 40, by - 30, H, 8, 20, 18), (60, 60, 65))
     for x in (-110, 110):
         p[f"hinge_{x}"] = C(trimesh.creation.cylinder(radius=6, segment=[(x - 20, 152, H + 4), (x + 20, 152, H + 4)], sections=24), (200, 200, 205))

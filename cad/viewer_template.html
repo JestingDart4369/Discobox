@@ -5,24 +5,33 @@
 <title>Discobox 3D viewer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  html, body { margin: 0; height: 100%; font-family: Helvetica, Arial, sans-serif; background: #dcebf8; color: #1c2b3a; overflow: hidden; }
+  :root { color-scheme: only light; --bg:#f6f7fb; --main:#5E282C; --text:#190607; --accent:#EEE3C9; --muted:#7e6e56; --pink:#ff2fa3; --cyan:#2ff3ff; --yellow:#ffe12f; }
+  html, body { margin: 0; height: 100%; font-family: Roboto, system-ui, Arial, sans-serif; background: var(--bg); color: var(--main); overflow: hidden; }
   #wrap { display: flex; height: 100%; }
-  #side { width: 300px; background: #fff; border-right: 1px solid #c9d7e6; overflow-y: auto; padding: 10px 12px; box-sizing: border-box; font-size: 13px; }
-  #view { flex: 1; position: relative; }
-  canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-  h1 { font-size: 17px; margin: 0 0 6px; }
-  h2 { font-size: 13px; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: .04em; color: #4a6075; }
-  .tabs button, .views button { padding: 5px 9px; margin: 0 4px 4px 0; border: 1px solid #9fb3c8; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
-  .tabs button.active { background: #1c2b3a; color: #fff; border-color: #1c2b3a; }
-  #note { font-size: 12px; color: #4a6075; margin: 6px 0; line-height: 1.35; }
+  #side { width: 310px; background: var(--bg); border-right: 2px solid var(--main); box-shadow: 4px 0 0 var(--pink), 8px 0 0 var(--cyan); overflow-y: auto; padding: 12px 14px 20px; box-sizing: border-box; font-size: 13px; z-index: 2; }
+  #view { flex: 1; position: relative; background: linear-gradient(#f6f7fb 0%, #efe3ff 62%, #ffd2ee 100%); transition: background .6s; }
+  #view.disco { background: linear-gradient(#2f45b0 0%, #6f67d6 55%, #b9a6ff 100%); }
+  #view::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; pointer-events: none; opacity: .35; background: linear-gradient(90deg,#2ff3ff 1px,transparent 1px) 0 0/48px 48px, linear-gradient(#ff2fa3 1px,transparent 1px) 0 0/48px 48px; transform: perspective(260px) rotateX(58deg); transform-origin: 50% 100%; }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; z-index: 1; }
+  h1 { font-size: 18px; margin: 0 0 8px; color: var(--text); font-style: italic; text-transform: uppercase; letter-spacing: .08em; text-shadow: 2px 2px 0 #2ff3ff99; }
+  h2 { font-size: 12px; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .08em; color: var(--main); font-style: italic; border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+  button, select { font: inherit; color: var(--main); }
+  .tabs button, .views button, #side button { padding: 5px 12px; margin: 0 4px 4px 0; border: 2px solid var(--main); background: #fff; border-radius: 999px; cursor: pointer; font-size: 12px; transition: .15s; }
+  #side button:hover { background: var(--accent); } #side button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+  .tabs button.active { background: var(--pink); color: #fff; border-color: var(--pink); }
+  #note { font-size: 12px; color: var(--muted); margin: 6px 0; line-height: 1.4; }
   label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
   .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0003; flex: none; }
-  details { margin: 0 0 2px 0; }
-  summary { cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 2px 0; }
-  details label { padding-left: 24px; font-size: 12px; color: #355; }
-  #hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: #3b556e; background: #ffffffb0; padding: 3px 8px; border-radius: 4px; }
-  #info { position: absolute; right: 10px; top: 8px; font-size: 12px; color: #3b556e; background: #ffffffb0; padding: 3px 8px; border-radius: 4px; }
-  input[type=range] { width: 100%; }
+  details { margin: 0 0 2px 0; } summary { cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+  details label { padding-left: 24px; font-size: 12px; color: var(--muted); }
+  #hint, #info { position: absolute; font-size: 12px; color: var(--main); background: #fffffff0; border: 2px solid var(--accent); padding: 3px 12px; border-radius: 999px; z-index: 2; }
+  #hint { left: 10px; bottom: 8px; } #info { right: 10px; top: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--pink); } input[type=checkbox] { accent-color: var(--pink); width: 15px; height: 15px; }
+  .box { border: 2px solid var(--accent); border-radius: 18px; padding: 6px 10px; background: #fff; }
+  select { width: 100%; border: 2px solid var(--main); border-radius: 999px; padding: 4px 8px; background: #fff; }
+  #discoBtn { width: 100%; padding: 10px !important; font-size: 15px !important; font-weight: 700; margin: 6px 0 0 !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -37,11 +46,27 @@
     </div>
     <h2>Shell see-through</h2>
     <input type="range" id="shellAlpha" min="0.1" max="1" step="0.05" value="1">
+    <div id="settings" hidden>
+    <h2>Settings</h2>
+    <div class="box">
+      <label><input type="checkbox" id="setInter" checked> Interactive (disco button)</label>
+      <label><input type="checkbox" id="setTable"> Side table (gets bigger when add-ons need room)</label>
+      <label><input type="checkbox" id="setMains"> Add-on: mains cable 5 m</label>
+      <label><input type="checkbox" id="setStrip"> Add-on: 3 m LED strip (with its cable)</label>
+      <label><input type="checkbox" id="setButton"> Add-on: big red button (with its cable)</label>
+      <label><input type="checkbox" id="setBall"> Add-on: motor disco ball (with its cord)</label>
+      <label><input type="checkbox" id="setDraw"> Drawings only (wires, electronics, mains)</label>
+      <div style="margin-top:6px"><button id="preNo" type="button">No cables</button><button id="preCab" type="button">With cables</button></div>
+    </div>
+    <div id="discobox" hidden><button id="discoBtn" type="button" aria-pressed="false">Disco OFF (click to turn on)</button><div style="font-size:11px;color:var(--muted);margin-top:4px">or press the pink button on the record or the big red button on its cable (straight to disco mode). Slow colour cycling, no flashing.</div></div>
+  </div>
+    <h2>Highlight (wiring)</h2>
+    <div id="hlbox" class="box"><select id="hlsel" style="width:100%"><option value="">none</option></select> <button id="hlclr">clear</button></div>
     <h2>Show / hide</h2>
     <div style="margin-bottom:4px"><button id="allOn">all on</button> <button id="allOff">all off</button></div>
     <div id="groups"></div>
   </div>
-  <div id="view"><canvas id="c"></canvas><div id="hint">drag = rotate · right-drag / shift-drag = move · wheel = zoom · double-click = reset</div><div id="info"></div></div>
+  <div id="view"><canvas id="c"></canvas><canvas id="fx"></canvas><div id="hint">drag = rotate · right-drag / shift-drag = move · wheel = zoom · double-click = reset</div><div id="info"></div></div>
 </div>
 <script>
 /*__DATA__*/
@@ -49,7 +74,7 @@
 <script>
 "use strict";
 const canvas = document.getElementById("c");
-const gl = canvas.getContext("webgl2", { antialias: true });
+const gl = canvas.getContext("webgl2", { antialias: true, alpha: true, premultipliedAlpha: false });
 if (!gl) document.body.innerHTML = "<p style='padding:20px'>WebGL2 is not available in this browser.</p>";
 
 // ---------- tiny matrix helpers (column-major) ----------
@@ -67,22 +92,23 @@ function norm(a){const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2
 
 // ---------- shaders: flat shading from screen-space derivatives ----------
 const VS = `#version 300 es
-in vec3 p; uniform mat4 mvp; uniform mat4 mv; out vec3 vp;
-void main(){ vec4 q = mv * vec4(p,1.0); vp = q.xyz; gl_Position = mvp * vec4(p,1.0); }`;
+in vec3 p; uniform mat4 mvp; uniform mat4 mv; uniform vec3 off; uniform float rot; uniform vec2 piv; out vec3 vp;
+void main(){ vec3 pp = p; vec2 d = pp.xy - piv; float cs = cos(rot), sn = sin(rot); pp.xy = piv + vec2(cs*d.x - sn*d.y, sn*d.x + cs*d.y); pp += off; vec4 q = mv * vec4(pp,1.0); vp = q.xyz; gl_Position = mvp * vec4(pp,1.0); }`;
 const FS = `#version 300 es
-precision highp float; in vec3 vp; uniform vec3 col; uniform float alpha; uniform vec3 keyDir; uniform vec3 rimDir; out vec4 o;
+precision highp float; in vec3 vp; uniform vec3 col; uniform float alpha; uniform vec3 keyDir; uniform vec3 rimDir; uniform float glow; uniform float amb; out vec4 o;
 void main(){
   vec3 n = normalize(cross(dFdx(vp), dFdy(vp)));
   if (n.z < 0.0) n = -n;                                   // two-sided
   float kd = max(dot(n, keyDir), 0.0), rd = max(dot(n, rimDir), 0.0);
   vec3 h = normalize(keyDir + vec3(0,0,1)); float sp = pow(max(dot(n,h),0.0), 28.0) * 0.25;
-  vec3 c = col * (0.32 + 0.78 * kd) * vec3(1.03,0.99,0.93) + 0.10 * rd * vec3(0.55,0.65,0.9) + sp;
+  vec3 c = col * (0.32 + amb + 0.78 * kd) + amb * 0.35 * vec3(0.45,0.2,0.75) * vec3(1.03,0.99,0.93) + 0.10 * rd * vec3(0.55,0.65,0.9) + sp;
+  c += glow * vec3(0.45,0.35,0.05) * (0.6 + 0.4*kd);
   o = vec4(clamp(c,0.0,1.0), alpha);
 }`;
 function sh(t, s){ const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(x); return x; }
 const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
 const U = n => gl.getUniformLocation(prog, n);
-const loc = { mvp: U("mvp"), mv: U("mv"), col: U("col"), alpha: U("alpha"), key: U("keyDir"), rim: U("rimDir") };
+const loc = { mvp: U("mvp"), mv: U("mv"), col: U("col"), alpha: U("alpha"), key: U("keyDir"), rim: U("rimDir"), glow: U("glow"), amb: U("amb"), off: U("off"), rot: U("rot"), piv: U("piv") };
 
 function b64(s, T) { const bin = atob(s), u8 = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i); return new T(u8.buffer); }
 
@@ -93,22 +119,24 @@ const VIEWS = { iso: [-0.55, 0.42], front: [0, 0.05], side: [-Math.PI/2, 0.05], 
 function resetCam() { cam.yaw = -0.55; cam.pitch = 0.42; cam.dist = cur.dist || 900; cam.tx = 0; cam.ty = 0; cam.tz = cur.tz || 130; }
 
 function loadVersion(v) {
-  cur = v; parts.forEach(p => { gl.deleteVertexArray(p.vao); });
-  parts = v.parts.map(p => {
+  const src = v.like ? VERSIONS.find(x => x.id === v.like) : v;
+  cur = Object.assign({}, src, v); parts.forEach(p => { gl.deleteVertexArray(p.vao); });
+  parts = src.parts.map(p => {
     const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, b64(p.v, Float32Array), gl.STATIC_DRAW);
     const a = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 3, gl.FLOAT, false, 0, 0);
     const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); const idx = b64(p.i, Uint32Array); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
-    return { name: p.n, group: p.g, col: p.c.map(x => x / 255), vao, count: idx.length };
+    return { name: p.n, group: p.g, led: /led_ring_block|diffuser_plate|button_cap|led_strip_3m_leds/.test(p.n), verts: b64(p.v, Float32Array), col: p.c.map(x => x / 255), vao, count: idx.length };
   });
   visible = {}; groupsOn = {};
   const hidden = v.hiddenGroups || [];
   parts.forEach(p => { groupsOn[p.group] = !hidden.includes(p.group); });
   parts.forEach(p => { visible[p.name] = true; });
-  buildPanel(); resetCam();
+  disco = false; setDisco(false); 
+  buildPanel(); resetCam(); initSettings(src); hl = new Set(); if (typeof fillHlList === 'function') fillHlList();
   document.getElementById("note").textContent = v.note;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.id === v.id));
-  location.hash = v.id;
+  history.replaceState(null, '', '#' + v.id);
   const tri = parts.reduce((s, p) => s + p.count / 3, 0);
   document.getElementById("info").textContent = parts.length + " parts · " + Math.round(tri / 1000) + "k triangles · mm";
 }
@@ -133,6 +161,92 @@ function buildPanel() {
 }
 function setAll(on) { Object.keys(groupsOn).forEach(g => groupsOn[g] = on); document.querySelectorAll("#groups > details > summary > input").forEach(c => c.checked = on); }
 
+// ---------- settings + disco (interactive) ----------
+let disco = false, pressNow = 0, spinV = 0, spinA = 0, interactive = true, drawSnap = null;
+const $ = id => document.getElementById(id);
+function setDisco(on) { disco = on; const b = $("discoBtn"); b.setAttribute("aria-pressed", on); b.textContent = on ? "Disco ON (click to turn off)" : "Disco OFF (click to turn on)"; b.style.background = on ? "#ff2fa3" : "#fff"; b.style.color = on ? "#fff" : "#5E282C"; $("view").classList.toggle("disco", on); }
+function press() { pressNow = 1; setDisco(!disco); }
+$("discoBtn").onclick = press;
+function syncGroup(g, on) { if (!(g in groupsOn)) return; groupsOn[g] = on; document.querySelectorAll("#groups > details > summary > input").forEach(c => { if (c.dataset.g === g) c.checked = on; }); }
+const ADD = { setMains: "Mains cable 5 m (not printed)", setStrip: "LED strip + cable (not printed)", setButton: "Big red button + cable (not printed)", setBall: "Disco ball + cord (not printed)" };
+function applySettings() {
+  interactive = $("setInter").checked; $("discobox").hidden = !interactive; if (!interactive) setDisco(false);
+  Object.keys(ADD).forEach(k => syncGroup(ADD[k], $(k).checked));
+  const wide = Object.keys(ADD).some(k => $(k).checked), t = $("setTable").checked;      // 2 table variations
+  syncGroup("Side table", t && !wide); syncGroup("Side table, extended (for cables)", t && wide);
+}
+$("setTable").onchange = () => applySettings();
+Object.keys(ADD).forEach(k => $(k).onchange = applySettings); $("setInter").onchange = applySettings;
+$("preNo").onclick = () => { Object.keys(ADD).forEach(k => $(k).checked = false); applySettings(); };
+$("preCab").onclick = () => { $("setTable").checked = true; Object.keys(ADD).forEach(k => $(k).checked = true); applySettings(); };
+const KEEP = ["Wires", "Electronics", "Mains compartment", "Speakers", "Plugs (not printed)"];
+$("setDraw").onchange = e => {
+  if (e.target.checked) { drawSnap = Object.assign({}, groupsOn); Object.keys(groupsOn).forEach(g => syncGroup(g, KEEP.includes(g))); }
+  else if (drawSnap) { Object.keys(drawSnap).forEach(g => syncGroup(g, drawSnap[g])); drawSnap = null; }
+};
+function initSettings(src) { $("settings").hidden = !src.addons; $("setDraw").checked = false; drawSnap = null; $("setInter").checked = true; $("setTable").checked = false; Object.keys(ADD).forEach(k => $(k).checked = false); if (src.addons) applySettings(); else $("discobox").hidden = true; }
+function hsv(h, s, v) { const f = n => { const k = (n + h * 6) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); }; return [f(5), f(3), f(1)]; }   // used by the disco colour cycling
+let lastMvp = null;
+
+// ---------- disco effects overlay: glow halos, laser beams, music notes ----------
+const fx = $("fx"), fc = fx.getContext("2d"); let level = 0, notes = [], lastSpawn = 0;
+const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function centreOf(name) { const pt = parts.find(p => p.name === name); if (!pt || !groupsOn[pt.group] || !visible[name]) return null; const b = bbox(new Set([name])); return b ? [(b[0][0]+b[1][0])/2, (b[0][1]+b[1][1])/2, (b[0][2]+b[1][2])/2] : null; }
+function proj(c) { const m = lastMvp, W = fx.clientWidth, H = fx.clientHeight, w = m[3]*c[0]+m[7]*c[1]+m[11]*c[2]+m[15]; return [((m[0]*c[0]+m[4]*c[1]+m[8]*c[2]+m[12]) / w * 0.5 + 0.5) * W, (1 - ((m[1]*c[0]+m[5]*c[1]+m[9]*c[2]+m[13]) / w * 0.5 + 0.5)) * H]; }
+function css(h, a) { const c = hsv(((h % 1) + 1) % 1, 0.85, 1).map(x => Math.round(x * 255)); return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; }
+function drawFx(tt, dt) {
+  const W = fx.clientWidth * devicePixelRatio, H = fx.clientHeight * devicePixelRatio;
+  if (fx.width !== W || fx.height !== H) { fx.width = W; fx.height = H; }
+  level += ((disco ? 1 : 0) - level) * 0.06;
+  fc.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); fc.clearRect(0, 0, fx.clientWidth, fx.clientHeight);
+  if (level < 0.02 || !lastMvp) { notes = []; return; }
+  const k = (fx.clientHeight / 700) * (900 / cam.dist), hue = tt * 0.12;
+  fc.globalCompositeOperation = "lighter";
+  const ring = centreOf("rp_tilted_led_ring_block"), strip = centreOf("cable_led_strip_3m_leds"), ball = centreOf("ball_disco_ball_mirror");
+  const halo = (c, r, h, a) => { if (!c) return; const [x, y] = proj(c), g = fc.createRadialGradient(x, y, 0, x, y, r * k); g.addColorStop(0, css(h, a * level)); g.addColorStop(1, css(h, 0)); fc.fillStyle = g; fc.fillRect(x - r * k, y - r * k, 2 * r * k, 2 * r * k); };
+  halo(ring, 260, hue, 0.55); halo(strip, 230, hue + 0.3, 0.45); halo(ball, 200, hue + 0.6, 0.35);
+  if (!reduce) {                                                                                       // slow laser beams from the ball (or the ring)
+    const src = ball || ring; if (src) { const [x, y] = proj(src); fc.lineWidth = 2.2; fc.lineCap = "round";
+      for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + Math.sin(tt * (0.35 + i * 0.07) + i * 1.7) * 1.15, L = Math.max(fx.clientWidth, fx.clientHeight) * 1.1;
+        const g = fc.createLinearGradient(x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); g.addColorStop(0, css(hue + i / 6, 0.9 * level)); g.addColorStop(1, css(hue + i / 6, 0));
+        fc.strokeStyle = g; fc.beginPath(); fc.moveTo(x, y); fc.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); fc.stroke(); } } }
+  fc.globalCompositeOperation = "source-over";
+  if (tt - lastSpawn > 0.28 && disco) {                                                                  // music notes rise from the speakers and the record
+    lastSpawn = tt; const srcs = [[-85, -172, 50], [85, -172, 50], ring].filter(Boolean), c = srcs[Math.floor(Math.random() * srcs.length)], [x, y] = proj(c);
+    notes.push({ x: x + (Math.random() - 0.5) * 30 * k, y, t: 0, ch: "♪♫♬♩"[Math.floor(Math.random() * 4)], h: Math.random(), s: (20 + Math.random() * 18) * Math.max(0.7, k), ph: Math.random() * 6.3 }); }
+  fc.textAlign = "center"; fc.textBaseline = "middle";
+  notes = notes.filter(n => (n.t += dt) < 3.6);
+  notes.forEach(n => { const a = Math.min(1, n.t * 2) * Math.max(0, 1 - n.t / 3.6) * level, x = n.x + Math.sin(n.t * 2.2 + n.ph) * 26 * k, y = n.y - n.t * 90 * k;
+    fc.font = "700 " + n.s + "px system-ui, sans-serif"; fc.fillStyle = "rgba(25,6,7," + a * 0.55 + ")"; fc.fillText(n.ch, x + 2, y + 2); fc.fillStyle = css(n.h + hue, a); fc.fillText(n.ch, x, y); });
+}
+
+// ---------- highlight (used by the interactive wiring diagram) ----------
+let hl = new Set();
+function bbox(names) {
+  const lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9];
+  parts.forEach(p => { if (!names.has(p.name)) return; const v = p.verts; for (let i=0;i<v.length;i+=3) for (let k=0;k<3;k++){ lo[k]=Math.min(lo[k],v[i+k]); hi[k]=Math.max(hi[k],v[i+k]); } });
+  return lo[0] > hi[0] ? null : [lo, hi];
+}
+function setHighlight(names, focus, quiet) {
+  hl = new Set(names.filter(n => parts.some(p => p.name === n)));
+  document.getElementById("hlsel").value = hl.size === 1 ? [...hl][0] : "";
+  if (hl.size) {
+    Object.keys(groupsOn).forEach(g => { if (g === "Wires") groupsOn[g] = true; });
+    document.querySelectorAll("#groups > details > summary > input").forEach(c => { if (c.dataset.g === "Wires") c.checked = true; });
+    document.getElementById("shellAlpha").value = 0.15;
+    parts.forEach(p => { if (hl.has(p.name)) visible[p.name] = true; });
+    if (focus !== false) { const b = bbox(hl); if (b) { cam.tx=(b[0][0]+b[1][0])/2; cam.ty=(b[0][1]+b[1][1])/2; cam.tz=(b[0][2]+b[1][2])/2; cam.dist=Math.max(260, Math.hypot(b[1][0]-b[0][0], b[1][1]-b[0][1], b[1][2]-b[0][2]) * 1.8); } }
+  } else document.getElementById("shellAlpha").value = 1;
+  if (!quiet && parent !== window) parent.postMessage({ type: "discobox-wire", names: [...hl] }, "*");
+}
+function fillHlList() {
+  const sel = document.getElementById("hlsel"); sel.length = 1;
+  parts.filter(p => p.name.indexOf("wire_") === 0).forEach(p => { const o = document.createElement("option"); o.value = p.name; o.textContent = p.name.slice(5).replace(/_/g, " "); sel.append(o); });
+}
+document.getElementById("hlsel").onchange = e => setHighlight(e.target.value ? [e.target.value] : []);
+document.getElementById("hlclr").onclick = () => setHighlight([]);
+window.addEventListener("message", e => { const d = e.data; if (d && d.type === "discobox-hl") setHighlight(d.names || [], true, true); });
+
 // ---------- UI ----------
 const tabs = document.getElementById("tabs");
 VERSIONS.forEach(v => { const b = document.createElement("button"); b.textContent = v.label; b.dataset.id = v.id; b.onclick = () => loadVersion(v); tabs.append(b); });
@@ -140,7 +254,20 @@ document.getElementById("allOn").onclick = () => setAll(true); document.getEleme
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => { const v = VIEWS[b.dataset.v]; cam.yaw = v[0]; cam.pitch = v[1]; });
 let drag = null;
 canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener("pointerup", () => drag = null);
+let down = null;
+canvas.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; }, true);
+canvas.addEventListener("pointerup", e => {
+  if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 4 && interactive && !$("settings").hidden && lastMvp) {
+    const m = lastMvp, r = canvas.getBoundingClientRect();
+    for (const [name, rad] of [["rp_tilted_button_cap", 34], ["plug_big_red_button_dome", 70]]) {     // pink button on the record, big red button on its cable
+      const pt = parts.find(p => p.name === name); if (!pt || !groupsOn[pt.group] || !visible[pt.name]) continue; const b = bbox(new Set([name])); if (!b) continue;
+      const c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2];
+      const x = m[0]*c[0]+m[4]*c[1]+m[8]*c[2]+m[12], y = m[1]*c[0]+m[5]*c[1]+m[9]*c[2]+m[13], w = m[3]*c[0]+m[7]*c[1]+m[11]*c[2]+m[15];
+      const sx = r.left + (x / w * 0.5 + 0.5) * r.width, sy = r.top + (1 - (y / w * 0.5 + 0.5)) * r.height;
+      const k = (r.height / 700) * (900 / cam.dist);                                               // button radius scales with zoom
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < Math.max(18, rad * k)) { press(); break; }
+    } }
+  down = null; drag = null; });
 canvas.addEventListener("pointermove", e => {
   if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
   if (drag.pan) { const k = cam.dist * 0.0012; cam.tx -= (Math.cos(cam.yaw) * dx) * k; cam.ty -= (Math.sin(cam.yaw) * dx) * k; cam.tz += dy * k; }
@@ -153,27 +280,33 @@ canvas.addEventListener("dblclick", resetCam); canvas.addEventListener("contextm
 function frame() {
   const w = canvas.clientWidth * devicePixelRatio, h = canvas.clientHeight * devicePixelRatio;
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-  gl.viewport(0, 0, w, h); gl.clearColor(0.86, 0.92, 0.98, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST); gl.useProgram(prog);
   const cp = Math.cos(cam.pitch), eye = [cam.tx + cam.dist * cp * Math.sin(cam.yaw), cam.ty - cam.dist * cp * Math.cos(cam.yaw), cam.tz + cam.dist * Math.sin(cam.pitch)];
   const mv = M.look(eye, [cam.tx, cam.ty, cam.tz], [0, 0, 1]);
-  const mvp = M.mul(M.persp(0.62, w / h, 20, 6000), mv);
+  const mvp = M.mul(M.persp(0.62, w / h, 20, 6000), mv); lastMvp = mvp;
+  const tt = performance.now() / 1000, dtf = Math.min(0.1, Math.max(0, tt - (window.__lastT || tt))); window.__lastT = tt; pressNow += ((disco ? 0.55 : 0) - pressNow) * 0.2; spinV += ((disco ? 1.3 : 0) - spinV) * 0.02; spinA += spinV / 60;
   gl.uniformMatrix4fv(loc.mvp, false, mvp); gl.uniformMatrix4fv(loc.mv, false, mv);
-  gl.uniform3fv(loc.key, norm([-0.45, 0.55, 0.7])); gl.uniform3fv(loc.rim, norm([0.7, -0.3, 0.3]));
+  gl.uniform1f(loc.amb, disco ? 0.45 : 0.0); gl.uniform3fv(loc.key, norm([-0.45, 0.55, 0.7])); gl.uniform3fv(loc.rim, norm([0.7, -0.3, 0.3]));
   const sa = parseFloat(document.getElementById("shellAlpha").value);
   const pass = (transparent) => parts.forEach(p => {
     if (!groupsOn[p.group] || !visible[p.name]) return;
-    const isShell = p.group.indexOf("Shell") === 0, a = isShell ? sa : 1;
-    if ((a < 1) !== transparent) return;
-    gl.uniform3fv(loc.col, p.col); gl.uniform1f(loc.alpha, a);
+    const isShell = p.name.indexOf("shell") === 0, a = isShell ? sa : 1;
+    const dim = hl.size && !hl.has(p.name);
+    const aa = dim ? Math.min(a, isShell ? 0.05 : 0.14) : a;
+    if ((aa < 1) !== transparent) return;
+    gl.uniform3fv(loc.col, disco && p.led ? hsv((tt * 0.12 + (p.name.indexOf('strip') >= 0 ? 0.3 : p.name.indexOf('button') >= 0 ? 0.6 : 0)) % 1, p.name.indexOf('ball') >= 0 ? 0.35 : 0.9, 1.0) : p.col); gl.uniform1f(loc.alpha, aa); const nrm = cur.normal || [0, -0.643, 0.766], dd = p.name === 'rp_tilted_button_cap' ? -3.0 * pressNow : 0; gl.uniform3f(loc.off, nrm[0] * dd, nrm[1] * dd, nrm[2] * dd + (p.name === 'plug_big_red_button_dome' ? -9.0 * pressNow : 0)); const sp = (cur.spin || []).find(q => p.name === q.name); gl.uniform1f(loc.rot, sp ? spinA : 0); gl.uniform2f(loc.piv, sp ? sp.pivot[0] : 0, sp ? sp.pivot[1] : 0); gl.uniform1f(loc.glow, hl.has(p.name) ? 1 : (disco && p.led ? 1.6 + 0.4 * Math.sin(tt * 3 + p.name.length) : 0));
     gl.bindVertexArray(p.vao); gl.drawElements(gl.TRIANGLES, p.count, gl.UNSIGNED_INT, 0);
   });
   gl.disable(gl.BLEND); pass(false);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); pass(true); gl.depthMask(true);
+  drawFx(tt, dtf);
   requestAnimationFrame(frame);
 }
-const startId = location.hash.slice(1);
-loadVersion(VERSIONS.find(v => v.id === startId) || VERSIONS[0]);
+const hp = new URLSearchParams(location.hash.slice(1).replace(/^([^&=]+)(&|$)/, "v=$1&"));
+loadVersion(VERSIONS.find(v => v.id === hp.get("v")) || VERSIONS[0]); fillHlList();
+if (hp.get("disco")) setDisco(true);
+if (hp.get("hl")) setHighlight(hp.get("hl").split(","), true, true);
 requestAnimationFrame(frame);
 </script>
 </body>

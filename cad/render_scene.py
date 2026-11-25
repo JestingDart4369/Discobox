@@ -27,5 +27,8 @@ def parts(table=False):
 
 if __name__ == "__main__":
     out = os.path.join(here, "..", "doc", "img"); os.makedirs(out, exist_ok=True)
-    zr.render(parts(False), el=20, az=-30, width=1400, background="blue", shadow=True, out=os.path.join(out, "recordplayer_product.png"))
+    zr.render(parts(False), el=20, az=-30, width=1400, background="synth", shadow=True, out=os.path.join(out, "recordplayer_product.png"))
     zr.render(parts(True), el=17, az=-32, width=1100, background="room", shadow=False, out=os.path.join(out, "recordplayer_scene.png"))
+    import make_plugs as pl
+    pb = parts(False); pb.update(pl.parts())
+    zr.render(pb, el=28, az=150, width=1400, background="synth", shadow=True, out=os.path.join(out, "recordplayer_back_cables.png"))
