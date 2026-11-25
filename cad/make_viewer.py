@@ -25,10 +25,13 @@ VERSIONS = [
          note="Before the record-player look: lift-off shell on a frame, mains compartment with lid, module block-outs."),
     dict(id="v3", label="v3 block-out", file="blockout_assembly.3mf", dist=800, tz=60, table=False,
          note="First block-out: housing with speakers, port pocket, mains compartment, parts, straight pipe and flat platter."),
+    dict(id="v2", label="v2 starter design (Schalplatte)", file="../starter/Shalplatte_Discobox.3mf", scale=1000.0, dist=700, tz=-60, table=False,
+         note="Your starter model: 315 mm platter with LED ring and diffuser plate, angled 100 mm stem and the Arduino holder below. The LED ring top is reused 1:1 in v5. Requirements got better from here: Arduino moved into the housing, flat platter plus tilted record, removable hollow pipe, mains compartment, recessed ports."),
 ]
 
 NS = "{http://schemas.microsoft.com/3dmanufacturing/core/2015/02}"
-FALLBACK = [("shell", (200, 25, 30)), ("housing", (200, 25, 30)), ("frame", (70, 70, 75)), ("mains_lid", (230, 120, 20)),
+FALLBACK = [("led holder", (25, 25, 28)), ("test top", (225, 225, 232)), ("led ring", (30, 160, 200)), ("abwinklung", (150, 150, 155)),
+            ("holder arduino", (120, 130, 150)), ("small parts", (0, 130, 140)), ("shell", (200, 25, 30)), ("housing", (200, 25, 30)), ("frame", (70, 70, 75)), ("mains_lid", (230, 120, 20)),
             ("mains_compartment", (230, 120, 20)), ("speaker", (60, 60, 60)), ("arduino", (0, 130, 140)), ("dfplayer", (60, 60, 190)),
             ("pam", (40, 150, 70)), ("buck", (190, 40, 150)), ("relay", (30, 90, 200)), ("psu", (90, 90, 95)), ("inlet", (230, 200, 40)),
             ("platter", (25, 25, 25)), ("pipe", (190, 190, 195))]
@@ -36,6 +39,10 @@ FALLBACK = [("shell", (200, 25, 30)), ("housing", (200, 25, 30)), ("frame", (70,
 
 def group_of(n):
     n = n.lower()
+    if n in ("led holder", "test top"): return "Record head"
+    if n == "led ring": return "Record head"
+    if n.startswith("abwinklung"): return "Pipe"
+    if n == "holder arduino" or n.startswith("small parts"): return "Electronics"
     if n.startswith("table"): return "Side table"
     if any(k in n for k in ("knob", "slider", "control_panel", "tonearm", "hinge", "foot", "platter", "grooves", "label", "collar")) and "block_" not in n:
         return "Cosmetic (looks only)"
@@ -90,12 +97,18 @@ def build():
         path = os.path.join(PH, v["file"])
         known = colours_from_3mf(path)
         sc = trimesh.load(path, force="scene")
-        parts, zmin = [], 1e9
+        parts, zmin, small = [], 1e9, []
+        k = v.get("scale", 1.0)
         for name, g in sc.geometry.items():
             T, _ = sc.graph[name]
-            m = g.copy(); m.apply_transform(T)
+            m = g.copy(); m.apply_transform(T); m.apply_scale(k)
+            if k != 1.0 and name.startswith("Part "):      # the starter has ~300 tiny parts: merge them
+                small.append(m); continue
             zmin = min(zmin, m.bounds[0][2])
-            parts.append((name, m, colour_for(name, known)))
+            parts.append((name, m, colour_for(name, {} if k != 1.0 else known)))
+        if small:
+            sm = trimesh.util.concatenate(small); zmin = min(zmin, sm.bounds[0][2])
+            parts.append(("small parts (Arduino and others)", sm, colour_for("small parts", {})))
         zmin = float(zmin)
         for n, (m, c) in extras(zmin, v["table"]).items():
             parts.append((n, m, c))

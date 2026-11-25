@@ -103,3 +103,19 @@ Use the red PETG. PLA softens at about 55 to 60 °C; inside the box the 12 V bri
 The record head now uses the parts of `Shalplatte_Discobox.3mf` 1:1 (exported to `cad/starter/`: `led_holder.stl`, `test_top.stl`, `led_ring.stl`). Nothing about the ring pocket, ring width (OD 70) or the distance between ring and diffuser plate (ring top at +2 mm, plate bottom at +10 mm, so 8 mm) is changed; only the outer edge of the holder is trimmed from 315 to 300 mm and everything is shifted so the front face is at zero. The label (100 mm) sits on the diffuser plate, the button in its 16 mm hole.
 
 Product picture (light blue background): `doc/img/recordplayer_product.png`; on a side table: `recordplayer_scene.png` (`python3 cad/render_scene.py`).
+
+## Design requirements: starter model and now
+
+The starter model (`cad/starter/Shalplatte_Discobox.3mf`, version v2 in the [3D viewer](viewer/discobox_viewer.html)) was a 315 mm platter with the LED ring, an angled stem and the Arduino in a holder below. The requirements have been improved step by step:
+
+| Requirement | Starter model | Now (v5) |
+|-------------|---------------|----------|
+| Where the Arduino sits | In a holder under the stem | Inside the housing on the frame; USB-C only reachable when opened |
+| Housing | None | Record-player housing that fits everything comfortably, speakers visible on the front |
+| Platter and record | One 315 mm disc | Flat platter on the deck, tilted 300 mm record (40 degrees), label and hub 100 mm |
+| LED ring | Ring pocket in the disc | Same top part 1:1: pocket, ring width and ring-to-diffuser distance (8 mm) unchanged |
+| Pipe | Short angled stem | One hollow bent pipe, cables run through it, removable from the top |
+| Mains | Not planned | Separate mains compartment with its own lid, fuse and relay |
+| Cables | Not planned | Recessed back pocket with removable GX connectors; one-way cable clips and routes |
+| Opening and repair | Not planned | A few screws, shell lifts off the frame, snap-fit module mounts |
+| Printing | Not checked | Parts split into quarters that fit the Bambu P1S bed (platter and record still to split) |

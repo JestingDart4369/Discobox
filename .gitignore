@@ -19,4 +19,4 @@ include/Buzzer/Songs/*
 include/Audio/Track_Index_Data.h
 
 # GitHub Pages build output (site/build_site.py)
-_site/
+_site*/
