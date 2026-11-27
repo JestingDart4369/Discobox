@@ -305,6 +305,21 @@ def main():
         body = journal_page(src) if src == "JOURNAL.md" else doc_page(src)
         open(os.path.join(OUT, name), "w", encoding="utf-8").write(page(title, body, name))
     open(os.path.join(OUT, "bom.html"), "w", encoding="utf-8").write(page("Bill of materials", bom_page(), "bom.html"))
+    # sitemap.xml + robots.txt for search engines (inner iframe pages are left out)
+    import datetime
+    skip = {"3d/viewer.html", "wiring/diagrams.html", "wiring/interactive_inner.html"}
+    urls = []
+    for dp, _, fs in os.walk(OUT):
+        for f in fs:
+            if f.endswith(".html"):
+                rel = os.path.relpath(os.path.join(dp, f), OUT).replace(os.sep, "/")
+                if rel not in skip:
+                    urls.append("" if rel == "index.html" else rel)
+    today = datetime.date.today().isoformat()
+    sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    sm += "".join(f"  <url><loc>https://{DOMAIN}/{u}</loc><lastmod>{today}</lastmod></url>\n" for u in sorted(urls))
+    open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8").write(sm + "</urlset>\n")
+    open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\n\nSitemap: https://{DOMAIN}/sitemap.xml\n")
     n = sum(len(fs) for _, _, fs in os.walk(OUT))
     print(f"site built: {n} files in {os.path.relpath(OUT, ROOT)}/")
 
