@@ -36,6 +36,12 @@ SPK_HOLE_OFF = SPK_HOLES / 2 * np.sqrt(0.5)        # x and z offset of each hole
 SPK_X, SPK_Z = 85.0, 50.0            # speaker centre: left/right offset, height
 BRICK_L, BRICK_W, BRICK_H = 220.0, 60.0, 40.0     # 12 V brick (measured by you: 22 cm long, 6 cm wide, 4 cm high)
 GRILLE_D = 70.0                      # visible grille hole in the front wall
+# Tool-less pipe joint: bayonet (3 lugs, ramped slots, one way only). The 9 wires meet in a plug connector inside the pipe, reached through a window in the pipe wall.
+BAY_ANG = (80.0, 180.0, 310.0)        # lug angles in the LOCKED position (deg from +X, counter-clockwise seen from above); gaps 100/130/130 deg = fits one way only
+BAY_TWIST, BAY_DROP = 35.0, 4.0       # turn the pipe 35 deg; it drops 4 mm along the ramp and the pads land on the spring pins
+BAY_LUG_Z, BAY_LUG_H, BAY_LUG_W = 44.0, 6.0, 6.0   # lug: bottom height (locked), height, width (mm)
+BAY_R_LUG, BAY_R_SLOT, BAY_R_IN = 33.5, 34.5, 30.0  # lug tip radius, slot bottom radius, collar bore radius = 30.5 (pipe radius 30)
+WIN_Z0, WIN_Z1, WIN_W = 118.0, 150.0, 36.0     # window in the back (+Y) of the straight pipe, above the platter (top at z 111); a snap-on cover closes it
 STEM_D = 66.0                        # round opening in the top for the hollow pipe (OD 60)
 STEM_X, STEM_Y = 0.0, 0.0           # pipe position (x, y)
 PLATTER_D, PLATTER_T, PLATTER_GAP = 315.0, 17.0, 5.0   # from the starter 3MF
@@ -87,6 +93,11 @@ def grille_cuts(sx):
     bez.apply_translation((sx, -D / 2 + 0.4, SPK_Z))
     cuts.append(bez)
     return cuts
+
+
+def pipe_connector():
+    """Mated 9-pin plug connector (guess: 2.5 mm pitch housing pair, about 28 x 14 x 8 mm) inside the pipe, right behind the window."""
+    return box(-14, 6, 126, 28, 14, 8)
 
 
 def housing():
@@ -175,6 +186,7 @@ def main():
         "psu_brick_12V": box(MAINS_X0 + 2, MAINS_Y0 + 3, WALL + 2, BRICK_W, BRICK_L, BRICK_H),        # 22 x 6 x 4 cm (DC plug end at the front, AC end at the back)
         "mains_inlet_and_fuse (guess)": box(MAINS_X0 + 66, MAINS_Y0 + MAINS_D - 30, WALL + 36, 55, 25, 28),
         "pipe_to_button": place(ph.button_pipe(), 0, 0, H - WALL),
+        "pipe_connector_9pin": pipe_connector(),
         "platter": box(-1, -1, 0, 2, 2, 1),   # replaced below
     }
     platter = cyl(0, 0, H + PLATTER_GAP, PLATTER_D, PLATTER_T, 128)

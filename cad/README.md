@@ -35,7 +35,7 @@ Speakers, PAM8403 amp, buck converter, 12 V brick, Swiss sockets, connectors, LE
 
 ## Shell and frame
 
-`python3 cad/make_recordplayer.py` / `render_preview.py` add and preview the record-player look (tilted platter, knobs, tonearm). `python3 cad/make_full_assembly.py` writes the full coloured 3MF and merged STL (needs `shapely`, `mapbox_earcut`). `python3 cad/make_shell_frame.py` makes the two-part design (PETG frame + lift-off PLA shell + mains lid) and splits shell and frame into quarters that fit the P1S. See [../doc/ENCLOSURE.md](../doc/ENCLOSURE.md).
+`python3 cad/make_recordplayer.py` / `render_preview.py` add and preview the record-player look (tilted platter, tonearm). `python3 cad/make_full_assembly.py` writes the full coloured 3MF and merged STL (needs `shapely`, `mapbox_earcut`). `python3 cad/make_shell_frame.py` makes the two-part design (PETG frame + lift-off PLA shell + mains lid) and splits shell and frame into quarters that fit the P1S. See [../doc/ENCLOSURE.md](../doc/ENCLOSURE.md).
 
 ## 3D viewer and pictures
 

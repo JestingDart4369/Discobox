@@ -31,7 +31,7 @@ NEON = [("Hot pink", "#ff2fa3", "stripes, focus, pink button, slider thumbs"), (
         ("Night purple", "#1d0646", "footer, secret disco, vinyl"), ("Deep night", "#12002b", "footer background, marquee"),
         ("Sunset orange", "#ff8c28", "record label, sun"), ("Mint", "#2fff8a", "laser, audio wires")]
 PRODUCT = [("Shell (PLA/PETG)", "#e81e8c", "hot magenta"), ("Frame (PETG)", "#1ecde1", "cyan, hidden inside"), ("Mains lid", "#ffe12f", "yellow = careful, mains"),
-           ("Platter", "#341664", "purple"), ("Slip mat / control plate", "#160830", "near black purple"), ("Knobs", "#2ff3ff", "cyan, yellow pointers"),
+           ("Platter", "#341664", "purple"), ("Slip mat / control plate", "#160830", "near black purple"), ("Pipe window cover", "#ff2fa3", "hot pink, at the back of the pipe"),
            ("Record body", "#140a22", "black purple"), ("Record grooves", "#502c7d", "violet"), ("Record label", "#ff8c28", "sunset orange"),
            ("Diffuser", "#eee0ff", "milky lilac"), ("RGB button cap", "#ff2fa3", "hot pink"), ("Big red button", "#e11923", "buzzer red"),
            ("Tonearm", "#c8c8cd", "chrome, counterweight violet")]

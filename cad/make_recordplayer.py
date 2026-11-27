@@ -179,7 +179,32 @@ def pipe():
     outer = _tube(c, r)
     ci, ri = pipe_path(extra_start=1.0, extra_end=1.0, r_out=False)
     inner = _tube(ci, ri)
-    return C(diff(outer, [inner]), (90, 90, 95))
+    window = box(PX - mb.WIN_W / 2, PY, mb.WIN_Z0, mb.WIN_W, PIPE_OD, mb.WIN_Z1 - mb.WIN_Z0)     # opening at the back for the wire connector
+    return C(diff(outer, [inner, window]), (90, 90, 95))
+
+
+def _sector(r0, r1, a0, a1, z0, z1, n=6):
+    """Solid ring sector (convex for a few degrees) from angle a0 to a1 (deg), height z0..z1."""
+    pts = []
+    for a in np.linspace(a0, a1, n):
+        for r in (r0, r1):
+            for z in (z0, z1):
+                pts.append((PX + r * np.cos(np.radians(a)), PY + r * np.sin(np.radians(a)), z))
+    return trimesh.convex.convex_hull(np.array(pts))
+
+
+def pipe_foot():
+    """Printed with the pipe: 3 bayonet lugs near the foot."""
+    k = 57.2958 * mb.BAY_LUG_W / 2 / mb.BAY_R_LUG
+    lugs = [_sector(PIPE_OD / 2 - 1.0, mb.BAY_R_LUG, a - k, a + k, mb.BAY_LUG_Z, mb.BAY_LUG_Z + mb.BAY_LUG_H, n=3) for a in mb.BAY_ANG]
+    return {"pipe_bayonet_lugs": C(trimesh.util.concatenate(lugs), (90, 90, 95))}
+
+
+def pipe_window_cover():
+    """Snap-on cover for the window in the back of the pipe (curved like the pipe wall, 0.3 mm smaller all round)."""
+    ring = diff(cyl(PX, PY, mb.WIN_Z0 + 0.3, PIPE_OD, mb.WIN_Z1 - mb.WIN_Z0 - 0.6), [cyl(PX, PY, mb.WIN_Z0, PIPE_ID, mb.WIN_Z1 - mb.WIN_Z0)])
+    win = box(PX - mb.WIN_W / 2 + 0.3, PY, mb.WIN_Z0, mb.WIN_W - 0.6, PIPE_OD, mb.WIN_Z1 - mb.WIN_Z0)
+    return C(ring.intersection(win, engine="manifold"), (255, 47, 163))
 
 
 def hull_parts():
@@ -190,13 +215,8 @@ def hull_parts():
     # flat platter + slip mat on the deck, centred on the pipe, with a hole for the pipe
     p["platter_flat"] = C(diff(disc(PLAT_D, PLAT_T, H), [disc(PIPE_OD + 1, PLAT_T + 2, H - 1)]), (52, 22, 100))
     p["platter_mat"] = C(diff(disc(MAT_D, MAT_T, H + PLAT_T), [disc(PIPE_OD + 1, MAT_T + 2, H + PLAT_T - 1)]), (22, 8, 48))
-    # control panel (front, right) with three knobs and a slider
+    # control panel (front, right) with a slider (the three deco knobs and the two hinges are gone)
     p["control_panel"] = C(box(6, -166, H, 148, 36, 4), (22, 8, 48))          # raised plate, 4 mm, fully on the deck
-    for i, x in enumerate((35, 80, 125)):
-        skirt = cyl(x, -148, H + 4, 38, 2)                                     # visible base ring under each knob
-        base = cyl(x, -148, H + 6, 30, 12); ring = cyl(x, -148, H + 18, 34, 3)  # knob stands ON the skirt, not in the plate
-        p[f"knob{i + 1}"] = C(trimesh.util.concatenate([skirt, base, ring]), (47, 243, 255))
-        p[f"knob{i + 1}_pointer"] = C(box(x - 1, -148, H + 21, 2, 13, 1), (255, 225, 47))
     p["slider_track"] = C(box(-120, -152, H, 100, 4, 1.5), (10, 10, 10))      # sits on the deck (was floating 1.5 mm)
     p["slider_handle"] = C(box(-75, -155, H + 1.5, 8, 10, 6), (255, 47, 163))
     # tonearm: pivot at the right rear (as on a normal turntable), arm reaches over the platter
@@ -219,8 +239,6 @@ def hull_parts():
     p["tonearm_post"] = C(cyl(ex, ey, H, 8, ez - 4 - H), (200, 200, 205))                  # 8 mm support post under the arm end
     p["tonearm_tube_collar"] = C(cyl(bx, by, H + 14, 12, 12), (170, 170, 175))          # gimbal ring at the pivot
     p["tonearm_rest"] = C(box(bx - 40, by - 30, H, 8, 20, 18), (60, 60, 65))
-    for x in (-110, 110):
-        p[f"hinge_{x}"] = C(trimesh.creation.cylinder(radius=6, segment=[(x - 20, 152, H + 4), (x + 20, 152, H + 4)], sections=24), (200, 200, 205))
     return p
 
 
@@ -229,6 +247,8 @@ def all_parts():
     for n, m in record_parts().items():
         p["tilted_" + n] = tilt_place(m)
     p["pipe_hollow_removable"] = pipe()
+    p.update(pipe_foot())
+    p["pipe_window_cover"] = pipe_window_cover()
     return p
 
 
