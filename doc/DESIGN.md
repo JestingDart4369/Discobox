@@ -95,8 +95,8 @@ One look for everything: the website, the 3D viewer, the wiring page, the secret
 | Frame (PETG) | <span class="sw" style="background:#1ecde1"></span>`#1ecde1` | cyan, hidden inside |
 | Mains lid | <span class="sw" style="background:#ffe12f"></span>`#ffe12f` | yellow = careful, mains |
 | Platter | <span class="sw" style="background:#341664"></span>`#341664` | purple |
-| Slip mat / control plate | <span class="sw" style="background:#160830"></span>`#160830` | near black purple |
-| Pipe window cover | <span class="sw" style="background:#ff2fa3"></span>`#ff2fa3` | hot pink, at the back of the pipe |
+| Slip mat | <span class="sw" style="background:#160830"></span>`#160830` | near black purple |
+| Pipe | <span class="sw" style="background:#5a5a5f"></span>`#5a5a5f` | dark grey |
 | Record body | <span class="sw" style="background:#140a22"></span>`#140a22` | black purple |
 | Record grooves | <span class="sw" style="background:#502c7d"></span>`#502c7d` | violet |
 | Record label | <span class="sw" style="background:#ff8c28"></span>`#ff8c28` | sunset orange |

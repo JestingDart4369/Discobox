@@ -132,35 +132,6 @@ def col_pos():
     return [(sx * cx, sy * cy) for sx in (-1, 1) for sy in (-1, 1)]
 
 
-def _sector(r0, r1, a0, a1, z0, z1, n=6):
-    pts = [(mb.STEM_X + r * np.cos(np.radians(a)), mb.STEM_Y + r * np.sin(np.radians(a)), z)
-           for a in np.linspace(a0, a1, n) for r in (r0, r1) for z in (z0, z1)]
-    return trimesh.convex.convex_hull(np.array(pts))
-
-
-def bayonet_slots():
-    """Per lug: a vertical entry channel from the top of the collar, then a ramp that turns 35 deg and drops 4 mm, then a short flat seat.
-    Cut from the inside of the collar wall (bottom of the slot at r 34.5, wall is 36 thick at the outside, so a 1.5 mm skin stays)."""
-    cuts = []
-    r0, r1 = mb.BAY_R_IN + 0.3, mb.BAY_R_SLOT
-    zb, zh = mb.BAY_LUG_Z - 0.3, mb.BAY_LUG_H + 0.6          # slot is 0.3 mm roomier than the lug on every side
-    half = (mb.BAY_LUG_W / 2 + 0.4) / mb.BAY_R_SLOT * 57.2958
-    seat = 6.0                                                # last 6 deg is flat: the click position
-    for a_end in mb.BAY_ANG:
-        a_in = a_end - mb.BAY_TWIST
-        cuts.append(_sector(r0, r1, a_in - half, a_in + half, zb + mb.BAY_DROP, PLATE_T + 85 + 2, n=3))          # entry channel from the collar top
-        n = 12
-        for k in range(n):                                    # ramp: angle a_in -> a_end - seat, height drops by BAY_DROP
-            t0, t1 = k / n, (k + 1) / n
-            aa0 = a_in + (mb.BAY_TWIST - seat) * t0; aa1 = a_in + (mb.BAY_TWIST - seat) * t1
-            z0_, z1_ = zb + mb.BAY_DROP * (1 - t0), zb + mb.BAY_DROP * (1 - t1)
-            pts = [(mb.STEM_X + r * np.cos(np.radians(a)), mb.STEM_Y + r * np.sin(np.radians(a)), z)
-                   for a, zz in ((aa0 - half * (k == 0), z0_), (aa1, z1_)) for r in (r0, r1) for z in (zz, zz + zh + 1.8)]   # +1.8: the lug is 6 mm long on a 13 deg ramp
-            cuts.append(trimesh.convex.convex_hull(np.array(pts)))
-        cuts.append(_sector(r0, r1, a_end - seat - 0.5, a_end + half, zb, zb + zh, n=3))                         # flat seat (add a 0.4 mm bump here for the click)
-    return cuts
-
-
 def shell():
     h = mb.housing()
     h = diff(h, [box(-hw - 1, -hd - 1, -1, W + 2, D + 2, WALL + 1)])        # remove the floor: the frame is the floor
@@ -251,13 +222,12 @@ def frame():
     add += stops
     for x, y, r in CLIPS:
         add.append(clip_mesh(x, y, r))
-    # socket collar for the removable pipe: the 60 mm pipe drops in from the top and locks with a bayonet (no tools, no screws,
-    # nothing to reach under the cover); the slots are cut below.
+    # socket collar for the removable pipe: it just stands in the bore on a lip (seat ring), no screws and no twist; the plug sits below the lip
     collar = diff(cyl(mb.STEM_X, mb.STEM_Y, PLATE_T, 72, 85), [cyl(mb.STEM_X, mb.STEM_Y, PLATE_T - 1, 61, 90)])
     add.append(collar)
+    add.append(diff(cyl(mb.STEM_X, mb.STEM_Y, mb.LIP_Z0, 61.5, mb.LIP_H), [cyl(mb.STEM_X, mb.STEM_Y, mb.LIP_Z0 - 1, mb.LIP_ID, mb.LIP_H + 2)]))   # seat lip
     body = union(add)
     cuts = []
-    cuts += bayonet_slots()
     def hole_x(y, z, d, x0, x1):
         return trimesh.creation.cylinder(radius=d / 2, segment=[(x0, y, z), (x1, y, z)], sections=48)
     def hole_y(x, z, d, y0, y1):

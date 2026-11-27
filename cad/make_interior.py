@@ -112,7 +112,7 @@ def _pipe_route(start_pts, end_axis_sd, off, side=0.0):
 
 
 ARD_PIN = lambda dy: (-30, 85 + dy, 14)
-_up = [(-40, 60, 20), (-15, 25, 35)]
+_up = [(-40, 60, 14), (-12, 30, 14), (-6, 2, 16)]       # box-side wires enter the collar through the foot slot and end in the plug below the lip
 HEAD = {}
 for _k, (_cls, _d, _start, _sd, _off, _side) in {
     # button on the record: 2 wires for the switch, one wire per colour, one common ground for the three LEDs
