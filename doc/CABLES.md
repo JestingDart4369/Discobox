@@ -62,9 +62,9 @@ The two 2.2 m cables use 4.4 m of the 5 m roll in `BOM_enclosure.csv`.
 | button LED R D3 | led_r | 1.5 mm | 385 mm |
 | button LED G D5 | led_g | 1.5 mm | 395 mm |
 | button LED B D6 | led_b | 1.5 mm | 400 mm |
-| button LED common 12V | 12 | 1.5 mm | 460 mm |
+| button LED common 5V | 5 | 1.5 mm | 385 mm |
 | ring 5V | 5 | 2 mm | 385 mm |
 | ring GND | gnd | 2 mm | 460 mm |
 | ring data D4 330ohm | data | 1.5 mm | 410 mm |
 
-Total internal wire per net: 230 0.36 m, 12 0.98 m, 5 0.96 m, gnd 1.86 m, audio 0.30 m, data 1.69 m, led_r 0.39 m, led_g 0.40 m, led_b 0.40 m. Buy at least this much, plus spare.
+Total internal wire per net: 230 0.36 m, 12 0.52 m, 5 1.34 m, gnd 1.86 m, audio 0.30 m, data 1.69 m, led_r 0.39 m, led_g 0.40 m, led_b 0.40 m. Buy at least this much, plus spare.

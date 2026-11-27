@@ -1,6 +1,6 @@
 Item,Qty,Price_CHF,Link,Notes
 Arduino Uno R4 WiFi,1,23.7,,Main controller (Renesas RA4M1)
-"16 mm RGB push button (PM161-10E/J/42RGB/12V, 12 V LEDs, common plus)",1,29.9,,"Momentary switch + RGB LED, internal LED resistors"
+"16 mm Push Button with RGB Lighting 5V, stainless steel (PM161 series)",1,29.9,,"Momentary switch + RGB LED, internal LED resistors"
 DFRobot 16x WS2812 RGB LED ring (DFR0888-12),1,21.9,,"5 V, data on D4 via 330 Ohm"
 "BTF-Lighting WS2805 RGBCCT LED strip, 3 m, 60 LED/m, 12 V",1,17.39,https://www.btf-lighting.com/en-intl/products/ws2805-pixels-led-strip-light-rgbcct-5in1-60leds-m-addressable-dual-signal-3000k-6500k,"60 ICs (3 LEDs per IC), data on D11"
 DFPlayer Mini MP3 module,1,5.65,https://www.amazon.de/dp/B0DH2GJXMT,"Serial1 (D0/D1), 1 kOhm in series on its RX"

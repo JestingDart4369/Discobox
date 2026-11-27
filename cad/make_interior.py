@@ -121,7 +121,7 @@ for _k, (_cls, _d, _start, _sd, _off, _side) in {
     "button_LED_R_D3":             ("led_r", 1.5, ARD_PIN(4), 2.0, -4.0, 0.0),
     "button_LED_G_D5":             ("led_g", 1.5, ARD_PIN(8), 2.0, -1.0, 0.0),
     "button_LED_B_D6":             ("led_b", 1.5, ARD_PIN(12), 2.0, 2.0, 0.0),
-    "button_LED_common_12V":       ("12", 1.5, BUCK_IN, 2.0, 5.0, 0.0),      # 12 V version of the button: LEDs have a common PLUS (C+)
+    "button_LED_common_5V":        ("5", 1.5, BUCK_OUT, 2.0, 5.0, 0.0),      # 5 V version; the datasheet of the 12 V twin shows a common PLUS (C+), assumed the same here (?)
     # RGB ring (16 x WS2812) on the record: 5 V, GND, data via 330 Ohm
     "ring_5V":                     ("5", 2, BUCK_OUT, 12.0, 8.0, 24.0),
     "ring_GND":                    ("gnd", 2, (-105, 122, 14), 12.0, 10.5, 24.0),

@@ -26,7 +26,7 @@ A button-controlled party box for the **Arduino Uno R4 WiFi**: LED ring and stri
 | Part | Pin | Notes |
 |------|-----|-------|
 | Button (switch) | D2 | other contact to GND, internal pull-up (pressed = LOW) |
-| RGB button LED | D3 (R) / D5 (G) / D6 (B) | 12 V button: LED common plus (C+) to +12 V, each colour switched to GND by a small transistor/MOSFET, resistors built in |
+| RGB button LED | D3 (R) / D5 (G) / D6 (B) | 5 V button, resistors built in. Common plus (C+) to +5 V assumed (?), so a colour lights when its pin is LOW; check with a diode test |
 | WS2812 ring (16 LEDs) | D4 | data via 330 Ω, 5 V supply |
 | WS2805 RGBCCT strip (12 V) | D11 (SPI MOSI) | to DAT and BIN, +12 V from the supply, common GND; 60 ICs = 180 LEDs (3 LEDs per IC); a 3.3 V to 5 V level shifter is recommended |
 | Relay module (1 channel, 5 V) | D7 | active-low, 5 V supply, see [doc/RELAY.md](doc/RELAY.md) |

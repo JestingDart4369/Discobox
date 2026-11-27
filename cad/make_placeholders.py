@@ -93,7 +93,7 @@ def dfplayer():
 
 
 # ── 16 mm RGB push button (PM161H-10E, "Little Button" note) ───────────────
-# From the datasheet doc/datasheets/PM161-10E_RGB_12V_datasheet.pdf (PM161-10E/J/42RGB/12V/S):
+# From the datasheet doc/datasheets/PM161-10E_RGB_12V_twin_datasheet.pdf (PM161-10E/J/42RGB/12V/S, the 12 V twin of our 5 V button, same housing):
 # panel hole 16 +0.2 mm, panel max 6 mm, flange dia 18 x 1.5 on the front, button dia 11.8, body M16x1 thread,
 # 20 mm behind the flange, hex nut 21.8 across the corners (behind the panel), pin terminals 2 x 0.5 mm.
 def button():
