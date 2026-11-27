@@ -32,35 +32,39 @@ The two 2.2 m cables use 4.4 m of the 5 m roll in `BOM_enclosure.csv`.
 | mains neutral straight through | 230 | 3 mm | 65 mm |
 | mains live inlet to brick | 230 | 3 mm | 80 mm |
 | mains neutral inlet to brick | 230 | 3 mm | 80 mm |
-| 12V brick to buck barrel jack | 12 | 3 mm | 385 mm |
-| 12V buck in to strip port via fuse | 12 | 3 mm | 140 mm |
-| 5V buck to arduino | 5 | 2 mm | 45 mm |
-| 5V buck to relay coil | 5 | 2 mm | 275 mm |
+| 12V brick to buck barrel jack | 12 | 3 mm | 375 mm |
+| 12V buck in to strip port via fuse | 12 | 3 mm | 145 mm |
+| 5V buck to arduino | 5 | 2 mm | 35 mm |
+| 5V buck to relay coil | 5 | 2 mm | 300 mm |
 | 5V buck to amp pair | 5 | 2 mm | 200 mm |
-| GND buck to amp pair | gnd | 2 mm | 190 mm |
-| 5V amp to dfplayer | 5 | 1.5 mm | 35 mm |
-| GND amp to dfplayer | gnd | 1.5 mm | 45 mm |
-| audio dfplayer to amp L R | audio | 1.5 mm | 30 mm |
+| GND buck to amp pair | gnd | 2 mm | 200 mm |
+| 5V amp to dfplayer | 5 | 1.5 mm | 40 mm |
+| GND amp to dfplayer | gnd | 1.5 mm | 40 mm |
+| audio dfplayer to amp L | audio | 1.5 mm | 40 mm |
+| audio dfplayer to amp R | audio | 1.5 mm | 40 mm |
 | buzzer D9 | data | 1.5 mm | 190 mm |
 | buzzer GND | gnd | 1.5 mm | 200 mm |
 | data D11 via 74AHCT125 | data | 1.5 mm | 55 mm |
 | data 74AHCT125 to strip port | data | 1.5 mm | 95 mm |
-| serial arduino to dfplayer RX TX | data | 1.5 mm | 225 mm |
+| serial arduino TX to dfplayer RX | data | 1.5 mm | 225 mm |
+| serial dfplayer TX to arduino RX | data | 1.5 mm | 230 mm |
 | bigbutton signal to port | data | 1.5 mm | 105 mm |
 | bigbutton GND to port | gnd | 1.5 mm | 35 mm |
-| GND buck to gnd block | gnd | 2.5 mm | 85 mm |
+| GND buck to gnd block | gnd | 2.5 mm | 90 mm |
 | GND block to arduino | gnd | 2 mm | 75 mm |
 | GND block to strip port | gnd | 2.5 mm | 65 mm |
-| speaker left pair | audio | 1.5 mm | 75 mm |
-| speaker right pair | audio | 1.5 mm | 210 mm |
+| speaker left plus | audio | 1.5 mm | 60 mm |
+| speaker left minus | gnd | 1.5 mm | 70 mm |
+| speaker right plus | audio | 1.5 mm | 165 mm |
+| speaker right minus | gnd | 1.5 mm | 170 mm |
 | button switch D2 | data | 1.5 mm | 380 mm |
 | button switch GND | gnd | 1.5 mm | 455 mm |
 | button LED R D3 | led_r | 1.5 mm | 385 mm |
 | button LED G D5 | led_g | 1.5 mm | 395 mm |
 | button LED B D6 | led_b | 1.5 mm | 400 mm |
-| button LED common GND | gnd | 1.5 mm | 465 mm |
-| ring 5V | 5 | 2 mm | 400 mm |
+| button LED common 12V | 12 | 1.5 mm | 460 mm |
+| ring 5V | 5 | 2 mm | 385 mm |
 | ring GND | gnd | 2 mm | 460 mm |
 | ring data D4 330ohm | data | 1.5 mm | 410 mm |
 
-Total internal wire per net: 230 0.36 m, 12 0.53 m, 5 0.95 m, gnd 2.08 m, audio 0.32 m, data 1.46 m, led_r 0.39 m, led_g 0.40 m, led_b 0.40 m. Buy at least this much, plus spare.
+Total internal wire per net: 230 0.36 m, 12 0.98 m, 5 0.96 m, gnd 1.86 m, audio 0.30 m, data 1.69 m, led_r 0.39 m, led_g 0.40 m, led_b 0.40 m. Buy at least this much, plus spare.

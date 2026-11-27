@@ -44,10 +44,13 @@ def tube(pts, d, rgb):
 
 # parts positions (see make_blockout.py)
 ARD = (-45, 95, 14)          # middle of the Arduino
-BUCK_OUT, BUCK_IN = (-73, 75, 18), (-137, 75, 18)     # terminals at the two short ends of the 6 cm buck: 12 V in (left), 5 V out (right)
+BUCK_OUT, BUCK_IN, BUCK_PLUG = (-58, 75, 16), (-127, 75, 16), (-150, 75, 22)     # 6.5 cm buck board: 12 V in at the left end (the ~4 cm DC plug, lead plugs in from above), 5 V out at the right end
+AMP_5V, AMP_GND, AMP_INL, AMP_INR = (-55, -92, 14), (-52, -92, 14), (-59, -100, 14), (-59, -104, 14)       # amp board 3 x 2 cm at x -60..-30, y -110..-90
+AMP_LP, AMP_LM, AMP_RP, AMP_RM = (-56, -110, 14), (-53, -110, 14), (-50, -110, 14), (-47, -110, 14)        # speaker outputs on the front edge
+DFP_5V, DFP_GND, DFP_L, DFP_R, DFP_TX, DFP_RX = (-79, -84, 28), (-79, -87, 28), (-79, -91, 28), (-79, -94, 28), (-92, -80, 28), (-95, -80, 28)   # DFPlayer on the breadboard
 GNDB = (-105, 125, 14)       # GND block (guess)
 SHIFT = (-70, 125, 12)       # 74AHCT125 (guess)
-BRICK_L = (MX + 32, -57, 22)   # 12 V lead leaves the DC end of the brick (front) through the compartment front wall
+BRICK_L = (MX + 32, mb.MAINS_Y0 - 2, 22)   # 12 V lead leaves the DC end of the brick (front) through the compartment front wall
 RELAY = (MX + 91, 108, 18)
 INLET = (MX + 85, 138, 40)
 OUTLET_IN = (P_OUT, PORT_Y, PZ)
@@ -61,23 +64,25 @@ wires = {
     "mains_live_inlet_to_brick": ("230", 3, [(MX + 93, 128, 50), (MX + 60, 131, 50), (MX + 34, 137, 32)]),
     "mains_neutral_inlet_to_brick": ("230", 3, [(MX + 93, 126, 46), (MX + 60, 129, 46), (MX + 30, 137, 28)]),
     # 12 V
-    "12V_brick_to_buck_barrel_jack": ("12", 3, [BRICK_L, (MX + 32, -66, 22), (-45, -66, 24), (-70, 10, 26), (-100, 50, 28), (-143, 50, 24), (-143, 75, 18), BUCK_IN]),   # barrel jack is on the buck converter
+    "12V_brick_to_buck_barrel_jack": ("12", 3, [BRICK_L, (MX + 32, mb.MAINS_Y0 - 10, 22), (20, -100, 24), (-10, -75, 26), (-68, -50, 26), (-100, 0, 28), (-150, 30, 26), (-150, 50, 24), BUCK_PLUG]),   # barrel jack is on the buck converter
     "12V_buck_in_to_strip_port_via_fuse": ("12", 3, [BUCK_IN, (-143, 100, 16), (-125, 128, 14), (-105, 140, 14), (P_STRIP + 3, PORT_Y - 2, PZ)]),
     # 5 V
-    "5V_buck_to_arduino": ("5", 2, [BUCK_OUT, (-70, 85, 14), (-50, 100, 14)]),
-    "5V_buck_to_relay_coil": ("5", 2, [BUCK_OUT, (-70, 60, 10), (WALLX - 10, 50, 10), (WALLX, 50, 12), RELAY]),
-    "5V_buck_to_amp_pair": ("5", 2, [BUCK_OUT, (-70, 55, 12), (-90, 20, 10), (-85, -90, 12)]),                       # the pair 5 V + GND for the amp ...
-    "GND_buck_to_amp_pair": ("gnd", 2, [(BUCK_OUT[0], BUCK_OUT[1] - 5, BUCK_OUT[2] - 2), (-86, 18, 8), (-80, -90, 10)]),
-    "5V_amp_to_dfplayer": ("5", 1.5, [(-85, -90, 12), (-100, -96, 14), (-112, -92, 14)]),            # ... and on to the DFPlayer Mini
-    "GND_amp_to_dfplayer": ("gnd", 1.5, [(-80, -90, 10), (-100, -100, 12), (-112, -96, 12)]),
-    "audio_dfplayer_to_amp_L_R": ("audio", 1.5, [(-110, -86, 14), (-100, -80, 16), (-88, -84, 14)]),
+    "5V_buck_to_arduino": ("5", 2, [BUCK_OUT, (-55, 85, 18), (-50, 100, 14)]),
+    "5V_buck_to_relay_coil": ("5", 2, [BUCK_OUT, (-54, 60, 12), (0, 52, 30), (WALLX - 10, 50, 50), (WALLX, 50, 50), (MX + 70, 60, 52), (MX + 90, 90, 40), RELAY]),   # over the 22 cm brick (z 50), through the wall hole
+    "5V_buck_to_amp_pair": ("5", 2, [BUCK_OUT, (-54, 60, 12), (-62, -40, 12), (-62, -86, 14), AMP_5V]),                       # the pair 5 V + GND for the amp ...
+    "GND_buck_to_amp_pair": ("gnd", 2, [(-58, 70, 14), (-57, 60, 9), (-65, -40, 9), (-65, -84, 12), AMP_GND]),
+    "5V_amp_to_dfplayer": ("5", 1.5, [AMP_5V, (-68, -88, 30), DFP_5V]),            # ... and on to the DFPlayer Mini
+    "GND_amp_to_dfplayer": ("gnd", 1.5, [AMP_GND, (-68, -90, 30), DFP_GND]),
+    "audio_dfplayer_to_amp_L": ("audio", 1.5, [DFP_L, (-72, -93, 31), (-62, -100, 18), AMP_INL]),
+    "audio_dfplayer_to_amp_R": ("audio", 1.5, [DFP_R, (-72, -95, 32), (-62, -104, 18), AMP_INR]),
     # piezo buzzer (D9) with GND
     "buzzer_D9": ("data", 1.5, [(-30, 105, 14), (-50, 60, 12), (-80, 20, 12), (-125, -10, 24), (-125, -20, 24)]),
     "buzzer_GND": ("gnd", 1.5, [(-105, 125, 14), (-143, 100, 10), (-150, 40, 10), (-148, -15, 24), (-142, -18, 24)]),
     # data and button
     "data_D11_via_74AHCT125": ("data", 1.5, [(-30, 105, 14), SHIFT]),
     "data_74AHCT125_to_strip_port": ("data", 1.5, [SHIFT, (-70, 140, 14), (P_STRIP + 6, PORT_Y - 2, PZ + 4)]),
-    "serial_arduino_to_dfplayer_RX_TX": ("data", 1.5, [(-45, 95, 14), (-60, 20, 10), (-114, -86, 12)]),
+    "serial_arduino_TX_to_dfplayer_RX": ("data", 1.5, [(-45, 95, 14), (-60, 40, 10), (-75, -55, 14), (-85, -60, 30), DFP_RX]),
+    "serial_dfplayer_TX_to_arduino_RX": ("data", 1.5, [(-45, 99, 14), (-62, 40, 10), (-77, -55, 14), (-88, -60, 31), DFP_TX]),
     # separate big red button on the 2.2 m cable (GX12 port): 2 wires, pin not chosen yet (?)
     "bigbutton_signal_to_port": ("data", 1.5, [(-30, 105, 14), (-70, 128, 24), (P_BTN + 3, PORT_Y - 2, PZ + 3)]),
     "bigbutton_GND_to_port": ("gnd", 1.5, [(-105, 128, 14), (-108, 135, 20), (P_BTN - 3, PORT_Y - 2, PZ - 3)]),
@@ -86,8 +91,10 @@ wires = {
     "GND_block_to_arduino": ("gnd", 2, [GNDB, (-70, 115, 8), (-48, 105, 14)]),
     "GND_block_to_strip_port": ("gnd", 2.5, [GNDB, (-110, 140, 10), (P_STRIP - 3, PORT_Y - 2, PZ - 3)]),
     # speakers
-    "speaker_left_pair": ("audio", 1.5, [(-100, -90, 12), (-95, -120, 20), (-mb.SPK_X, -130, mb.SPK_Z)]),
-    "speaker_right_pair": ("audio", 1.5, [(-85, -90, 12), (0, -110, 12), (mb.SPK_X, -130, mb.SPK_Z)]),
+    "speaker_left_plus": ("audio", 1.5, [AMP_LP, (-64, -122, 20), (-mb.SPK_X + 3, -126, mb.SPK_Z - 3)]),
+    "speaker_left_minus": ("gnd", 1.5, [AMP_LM, (-62, -120, 18), (-mb.SPK_X - 3, -126, mb.SPK_Z + 3)]),
+    "speaker_right_plus": ("audio", 1.5, [AMP_RP, (-40, -116, 12), (0, -116, 12), (mb.SPK_X - 3, -122, mb.SPK_Z - 3)]),
+    "speaker_right_minus": ("gnd", 1.5, [AMP_RM, (-38, -118, 12), (0, -118, 12), (mb.SPK_X + 3, -122, mb.SPK_Z + 3)]),
 }
 
 
@@ -114,7 +121,7 @@ for _k, (_cls, _d, _start, _sd, _off, _side) in {
     "button_LED_R_D3":             ("led_r", 1.5, ARD_PIN(4), 2.0, -4.0, 0.0),
     "button_LED_G_D5":             ("led_g", 1.5, ARD_PIN(8), 2.0, -1.0, 0.0),
     "button_LED_B_D6":             ("led_b", 1.5, ARD_PIN(12), 2.0, 2.0, 0.0),
-    "button_LED_common_GND":       ("gnd", 1.5, (-105, 128, 14), 2.0, 5.0, 0.0),
+    "button_LED_common_12V":       ("12", 1.5, BUCK_IN, 2.0, 5.0, 0.0),      # 12 V version of the button: LEDs have a common PLUS (C+)
     # RGB ring (16 x WS2812) on the record: 5 V, GND, data via 330 Ohm
     "ring_5V":                     ("5", 2, BUCK_OUT, 12.0, 8.0, 24.0),
     "ring_GND":                    ("gnd", 2, (-105, 122, 14), 12.0, 10.5, 24.0),

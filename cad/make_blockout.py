@@ -34,13 +34,13 @@ BAFFLE_T, BAFFLE_GAP = 6.0, 0.4                    # frame baffle plate behind t
 SPK_Y0 = -170.0 + 3.0 + BAFFLE_GAP + BAFFLE_T      # y of the speaker flange front (= back face of the baffle)
 SPK_HOLE_OFF = SPK_HOLES / 2 * np.sqrt(0.5)        # x and z offset of each hole from the speaker centre (corners at 45 degrees)
 SPK_X, SPK_Z = 85.0, 50.0            # speaker centre: left/right offset, height
-BRICK_L, BRICK_W, BRICK_H = 190.0, 60.0, 40.0     # 12 V brick (measured by you: 19 cm incl. space for the plugged-in cable end, 6 cm, 4 cm high)
+BRICK_L, BRICK_W, BRICK_H = 220.0, 60.0, 40.0     # 12 V brick (measured by you: 22 cm long, 6 cm wide, 4 cm high)
 GRILLE_D = 70.0                      # visible grille hole in the front wall
 STEM_D = 66.0                        # round opening in the top for the hollow pipe (OD 60)
 STEM_X, STEM_Y = 0.0, 0.0           # pipe position (x, y)
 PLATTER_D, PLATTER_T, PLATTER_GAP = 315.0, 17.0, 5.0   # from the starter 3MF
-MAINS_X0, MAINS_Y0 = 40.0, -55.0     # mains compartment inner corner (front-left); now long enough for the 19 cm brick
-MAINS_W, MAINS_D, MAINS_H = 122.0, 195.0, 70.0        # inside size; ends at y = 140, in front of the port pocket
+MAINS_X0, MAINS_Y0 = 40.0, -90.0     # mains compartment inner corner (front-left); long enough for the 22 cm brick
+MAINS_W, MAINS_D, MAINS_H = 122.0, 230.0, 70.0        # inside size; ends at y = 140, in front of the port pocket
 # recessed port pocket in the back wall (width, depth, height, bottom height)
 POCKET_W, POCKET_D, POCKET_H, POCKET_Z0 = 300.0, 22.0, 50.0, 15.0
 # port holes in the pocket's inner face: name -> (x position, hole diameter). Right side = over the mains compartment.
@@ -168,11 +168,11 @@ def main():
         "speaker_left": speaker(-SPK_X),
         "speaker_right": speaker(SPK_X),
         "arduino": arduino,
-        "dfplayer": place(ph.dfplayer(), -120, -100, 8),
-        "pam8403_amp (guess)": box(-90, -100, 8, 21, 18, 6),
-        "buck_converter": box(-135, 60, 8, 60, 30, 20),        # 6 x 3 x 2 cm, terminals at both short ends (12 V in left, 5 V out right)
+        "dfplayer": union([box(-160, -120, 8, 90, 55, 17), place(ph.dfplayer(), -100, -100, 25)]),     # DFPlayer Mini on a breadboard 9 x 5.5 x 2 cm (measured by you)
+        "pam8403_amp": union([box(-60, -110, 8, 30, 20, 5), box(-45, -110, 8, 20, 20, 15)]),     # amp board 3 x 2 cm, 0.5 cm high; volume dial block 2 x 2 x 1.5 cm sticks out 0.5 cm further (3.5 cm in all)
+        "buck_converter": union([box(-125, 55, 8, 65, 39, 15), box(-165, 69, 9, 40, 12, 12)]),        # board 6.5 x 3.9 x 1.5 cm; the ~4 cm DC plug sits on the left end (12 V in), 5 V out at the right end
         "relay_module": place(ph.relay_module(), MAINS_X0 + 66, 95.0, WALL + 5),
-        "psu_brick_12V": box(MAINS_X0 + 2, MAINS_Y0 + 3, WALL + 2, BRICK_W, BRICK_L, BRICK_H),        # 19 x 6 x 4 cm incl. the plugged-in DC plug end (front); AC end at the back
+        "psu_brick_12V": box(MAINS_X0 + 2, MAINS_Y0 + 3, WALL + 2, BRICK_W, BRICK_L, BRICK_H),        # 22 x 6 x 4 cm (DC plug end at the front, AC end at the back)
         "mains_inlet_and_fuse (guess)": box(MAINS_X0 + 66, MAINS_Y0 + MAINS_D - 30, WALL + 36, 55, 25, 28),
         "pipe_to_button": place(ph.button_pipe(), 0, 0, H - WALL),
         "platter": box(-1, -1, 0, 2, 2, 1),   # replaced below

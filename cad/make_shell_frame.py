@@ -33,9 +33,9 @@ from shapely.geometry import Polygon
 PAD_H = 5.0     # PCB height above the plate (matches make_blockout.py)
 # name: (x0, y0, size x, size y, PCB thickness, pad height). x0,y0 = lower-left corner. (guess) = measure your part.
 MODULES = {
-    "dfplayer":      (-120, -100, 20.8, 20.4, 1.0, PAD_H),
-    "pam8403_amp":   (-90, -100, 21.0, 18.0, 1.6, PAD_H),       # (guess)
-    "buck_converter": (-135, 60, 60.0, 30.0, 1.6, PAD_H),       # 6 x 3 cm, 2 cm high (measured by you)
+    "dfplayer":      (-160, -120, 90.0, 55.0, 1.6, PAD_H),      # breadboard 9 x 5.5 cm (measured by you)
+    "pam8403_amp":   (-60, -110, 35.0, 20.0, 1.6, PAD_H),       # 3 x 2 cm board, dial overhang to 3.5 cm (measured by you)
+    "buck_converter": (-125, 55, 65.0, 39.0, 1.6, PAD_H),       # 6.5 x 3.9 cm, 1.5 cm high (measured by you); the DC plug end hangs 4 cm over the left
     "level_shifter_74AHCT125": (-100, 100, 30.0, 20.0, 1.6, PAD_H),   # perfboard (guess)
     "gnd_block":     (-160, 115, 25.0, 12.0, 1.6, PAD_H),             # (guess)
     "relay_module":  (mb.MAINS_X0 + 66, 95.0, 50.0, 26.0, 1.6, PAD_H),
@@ -239,7 +239,7 @@ def frame():
         return trimesh.creation.cylinder(radius=d / 2, segment=[(x, y0, z), (x, y1, z)], sections=48)
     wx0, wx1 = mb.MAINS_X0 - WALL - 1, mb.MAINS_X0 + 1
     cuts.append(hole_y(mb.MAINS_X0 + 32, 22, 10, mb.MAINS_Y0 - WALL - 1, mb.MAINS_Y0 + 1))   # 12 V lead leaves the brick's DC end through the front wall of the compartment
-    cuts.append(hole_x(50, 12, 8, wx0, wx1))                                 # 5 V relay coil wires through the wall
+    cuts.append(hole_x(50, 50, 8, wx0, wx1))                                 # 5 V relay coil wires through the wall
     yb0, yb1 = mb.MAINS_Y0 + mb.MAINS_D - 1, mb.MAINS_Y0 + mb.MAINS_D + WALL + 1
     for pname in ("mains inlet (Swiss plug cable)", "outlet B Type 13 (disco ball)"):   # holes in the box back wall, in line with the pocket ports
         px_, pd_ = mb.PORTS[pname]

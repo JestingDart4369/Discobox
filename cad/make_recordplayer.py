@@ -90,7 +90,7 @@ def record_parts():
     p["record_grooves"] = C(trimesh.util.concatenate(g), (80, 44, 125))
     p["record_label"] = C(annulus(LABEL_D / 2, 8.3, 0.8, 0), (255, 140, 40))          # label stuck on the diffuser plate
     # 16 mm push button (PM161H style): metal bezel ring, plastic cap with a domed top that moves a little when pressed
-    p["button_collar"] = C(annulus(9.5, 7.9, 2.8, 0.8), (205, 205, 210))
+    p["button_collar"] = C(annulus(9.0, 7.9, 2.8, 0.8), (205, 205, 210))
     stem = disc(15.4, 3.2, 1.0)
     dome = trimesh.creation.uv_sphere(radius=14.0, count=[48, 96]); dome.apply_translation((0, 0, 4.2 + 2.2 - 14.0))
     dome = dome.slice_plane((0, 0, 4.2), (0, 0, 1), cap=True)

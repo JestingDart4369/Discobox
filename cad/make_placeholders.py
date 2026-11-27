@@ -93,13 +93,15 @@ def dfplayer():
 
 
 # ── 16 mm RGB push button (PM161H-10E, "Little Button" note) ───────────────
-# Hole 16 mm, push cap 11.8 mm, size 21.8 x 23.1 mm read as: bezel dia 21.8, 2 mm
-# above the panel, body dia 16 below the panel to a total length of 23.1 mm.
+# From the datasheet doc/datasheets/PM161-10E_RGB_12V_datasheet.pdf (PM161-10E/J/42RGB/12V/S):
+# panel hole 16 +0.2 mm, panel max 6 mm, flange dia 18 x 1.5 on the front, button dia 11.8, body M16x1 thread,
+# 20 mm behind the flange, hex nut 21.8 across the corners (behind the panel), pin terminals 2 x 0.5 mm.
 def button():
-    bezel = cyl(0, 0, 0, 21.8, 2.0)
-    cap = cyl(0, 0, 2.0, 11.8, 3.0)
-    body = cyl(0, 0, -21.1, 16.0, 21.1)
-    return union([bezel, cap, body])
+    flange = cyl(0, 0, 0, 18.0, 1.5)
+    cap = cyl(0, 0, 1.5, 11.8, 1.0)
+    body = cyl(0, 0, -20.0, 16.0, 20.0)
+    nut = cyl(0, 0, -7.5, 21.8, 3.0)
+    return union([flange, cap, body, nut])
 
 
 # ── 1-channel 5 V relay module (MAINS PART) ────────────────────────────────
